@@ -33,5 +33,5 @@ export function serve(port = 8080) {
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const port = Number(process.argv[2]) || 8080;
   await serve(port);
-  console.log(`KUDUNOTES at http://localhost:${port}/`);
+  console.log(`KUDUTUNES at http://localhost:${port}/`);
 }

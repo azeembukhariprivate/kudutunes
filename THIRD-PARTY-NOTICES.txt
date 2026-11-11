@@ -1,4 +1,4 @@
-KUDUNOTES uses these things made by others. Thank you.
+KUDUTUNES uses these things made by others. Thank you.
 
 Basic Pitch 1.0.1 (vendor/listen/listen.js and vendor/listen/model): the engine that hears the notes
   Copyright 2022 Spotify AB. Apache License 2.0 (its text is in vendor/listen/LICENSE-Apache-2.0.txt).

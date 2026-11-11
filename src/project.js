@@ -1,8 +1,10 @@
-// A piece as one file (".kudunotes") to keep or carry to another device: the notes and settings, and the recording
-// too when it's included. The file is: the words "KUDUNOTES 1" and a new line, the length of the description (4
+// A piece as one file (".kudutunes") to keep or carry to another device: the notes and settings, and the recording
+// too when it's included. The file is: the words "KUDUTUNES 1" and a new line, the length of the description (4
 // bytes), the description (JSON text), then the recording's bytes as they were.
 
-const MARK = 'KUDUNOTES 1\n';
+const MARK = 'KUDUTUNES 1\n';
+// Files saved before the app was renamed (".kudunotes") start with these words instead, and open the same way.
+const OLD_MARK = 'KUDUNOTES 1\n';
 
 /** Packs { name, notes, settings, duration } and an optional recording { bytes: Uint8Array, type } into bytes. */
 export function pack(piece, sound = null) {
@@ -21,8 +23,9 @@ export function pack(piece, sound = null) {
 
 /** Unpacks a project file. Throws an Error in plain words when the file isn't one. */
 export function unpack(bytes) {
-  const mark = new TextEncoder().encode(MARK);
-  if (bytes.length < mark.length + 4 || mark.some((b, i) => bytes[i] !== b)) throw new Error("This isn't a KUDUNOTES project file.");
+  const starts = m => { const k = new TextEncoder().encode(m); return bytes.length >= k.length + 4 && k.every((b, i) => bytes[i] === b); };
+  if (!starts(MARK) && !starts(OLD_MARK)) throw new Error("This isn't a KUDUTUNES project file.");
+  const mark = new TextEncoder().encode(MARK); // both marks are the same length
   const size = new DataView(bytes.buffer, bytes.byteOffset).getUint32(mark.length, true);
   const from = mark.length + 4;
   if (size > bytes.length - from) throw new Error('This project file is cut short.');

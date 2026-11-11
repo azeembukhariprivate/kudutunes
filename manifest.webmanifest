@@ -1,6 +1,6 @@
 {
-  "name": "KUDUNOTES",
-  "short_name": "KUDUNOTES",
+  "name": "KUDUTUNES",
+  "short_name": "KUDUTUNES",
   "description": "Listens to music and writes out its notes for piano and guitar.",
   "start_url": "./",
   "scope": "./",

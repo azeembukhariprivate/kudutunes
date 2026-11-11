@@ -1,7 +1,7 @@
 // Keeps a copy of the app on the device, so it opens without the internet. A new version (VERSION below, the same
 // as in package.json and src/main.js) fetches everything afresh.
-const VERSION = '1.0.0';
-const CACHE = 'kudunotes-' + VERSION;
+const VERSION = '1.1.0';
+const CACHE = 'kudutunes-' + VERSION;
 const FILES = [
   './',
   'THIRD-PARTY-NOTICES.txt',
@@ -32,7 +32,7 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('kudunotes-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => (k.startsWith('kudutunes-') || k.startsWith('kudunotes-')) && k !== CACHE) /* kudunotes-: the app's first name */.map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
 self.addEventListener('fetch', e => {

@@ -4,7 +4,7 @@
 const STEPS_A_SECOND = 960;
 
 /** Notes [{ t, d, p, a? }] as the bytes of a MIDI file. */
-export function midiFile(notes, title = 'KUDUNOTES') {
+export function midiFile(notes, title = 'KUDUTUNES') {
   const events = [];
   // A key can't be pressed again while it's down: a note still sounding when the same pitch starts again ends there.
   const sorted = [...notes].sort((x, y) => x.t - y.t || x.p - y.p), nextOn = new Map(), ends = new Map();

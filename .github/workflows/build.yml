@@ -1,4 +1,4 @@
-# Tests KUDUNOTES on every push: the parts that need no browser, then the real app in Chromium (listening to made-up
+# Tests KUDUTUNES on every push: the parts that need no browser, then the real app in Chromium (listening to made-up
 # tunes, playing, correcting, saving, recording with a pretend microphone). The app is installed on a server by hand
 # (see INSTALL.md), so nothing is published from here.
 name: Build

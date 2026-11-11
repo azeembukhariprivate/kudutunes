@@ -130,7 +130,11 @@ test('project files: everything comes back, with or without the recording; a wro
   assert.deepEqual([...a.sound.bytes], [...sound.bytes]);
   assert.equal(a.sound.type, 'audio/mpeg');
   assert.equal(unpack(pack(piece)).sound, null);
-  assert.throws(() => unpack(new Uint8Array([1, 2, 3])), /isn't a KUDUNOTES/);
+  assert.throws(() => unpack(new Uint8Array([1, 2, 3])), /isn't a KUDUTUNES/);
+  // A file saved before the app was renamed starts with its first name, and still opens.
+  const old = pack(piece, sound);
+  old.set(new TextEncoder().encode('KUDUNOTES 1\n'), 0);
+  assert.deepEqual(unpack(old).notes, piece.notes);
   assert.throws(() => unpack(pack(piece, sound).subarray(0, 300)), /cut short/);
   const odd = unpack(pack({ ...piece, notes: [{ t: 1, d: 1, p: 60 }, { t: -1, d: 1, p: 60 }, { t: 1, d: 1, p: 500 }, null, { t: 'x' }] }));
   assert.equal(odd.notes.length, 1, 'notes that make no sense are left out');

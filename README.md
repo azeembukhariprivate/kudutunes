@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="docs/logo-512.png" alt="KUDUNOTES logo" width="128">
+  <img src="docs/logo-512.png" alt="KUDUTUNES logo" width="128">
 </p>
 
-<h1 align="center">KUDUNOTES</h1>
+<h1 align="center">KUDUTUNES</h1>
 
 <p align="center">Listens to music and writes out its notes for piano and guitar: a piano roll and guitar tabs you can play back, slow down, correct and save. A free web app, and everything happens on your own device.</p>
 
 <p align="center">
-  <img src="docs/screenshot-1.png" alt="KUDUNOTES showing piano chords as a piano roll, with the same notes as guitar tabs below" width="820">
+  <img src="docs/screenshot-1.png" alt="KUDUTUNES showing piano chords as a piano roll, with the same notes as guitar tabs below" width="820">
   <br><br>
-  <img src="docs/screenshot-2.png" alt="KUDUNOTES in its dark look, with a guitar piece" width="820">
+  <img src="docs/screenshot-2.png" alt="KUDUTUNES in its dark look, with a guitar piece" width="820">
 </p>
 
 ---
@@ -66,7 +66,7 @@ on a small touch screen is basic.
 
 ## Putting it on your own server
 
-KUDUNOTES is only files: any web server can hand them out. Recording with the microphone needs an **https**
+KUDUTUNES is only files: any web server can hand them out. Recording with the microphone needs an **https**
 address. See [INSTALL.md](INSTALL.md) for step-by-step instructions (Caddy or nginx).
 
 ## Trying it on your own computer

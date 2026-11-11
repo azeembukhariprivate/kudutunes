@@ -40,4 +40,16 @@ test('the server set-ups in deploy/ use the safety rules the tests run under', a
   const { RULES } = await import('../tools/serve.mjs');
   assert.ok(read('deploy/Caddyfile').includes(RULES), 'Caddyfile');
   assert.ok(read('deploy/nginx.conf').includes(RULES), 'nginx.conf');
+  assert.ok(read('deploy/nginx-subfolder.conf').includes(RULES), 'nginx-subfolder.conf');
+});
+
+test('nginx: no add_header inside a location, which would drop the safety rules there', () => {
+  const conf = read('deploy/nginx.conf').replace(/#.*$/gm, '');
+  for (const block of conf.match(/^\s*location\b[^{]*\{[^}]*\}/gm) || []) assert.ok(!/add_header/.test(block), block);
+  // In the folder set-up they all sit in the one location, and none in the locations inside it.
+  const sub = read('deploy/nginx-subfolder.conf').replace(/#.*$/gm, '');
+  for (const inner of sub.match(/^\s*location ~[^{]*\{[^}]*\}/gm) || []) assert.ok(!/add_header/.test(inner), inner);
+  assert.equal((sub.match(/add_header /g) || []).length, 5);
+  for (const h of ['Cache-Control', 'X-Content-Type-Options', 'Referrer-Policy', 'Permissions-Policy', 'Content-Security-Policy'])
+    assert.match(conf, new RegExp(`add_header ${h} `), h);
 });

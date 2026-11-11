@@ -51,14 +51,14 @@ writeFileSync(files + 'Chords piano.wav', wav(render(CHORDS, strike)));
 try {
   const page = await browser.newPage({ viewport: { width: 1360, height: 800 }, acceptDownloads: true });
   watch(page);
-  const state = () => page.evaluate(() => kudunotes.state());
-  const shown = () => page.evaluate(() => kudunotes.app.piece.shown.map(n => ({ t: n.t, d: n.d, p: n.p, id: n.id })));
-  const inEditor = () => page.waitForFunction(() => kudunotes.state().screen === 'editor', null, { timeout: 600000 });
+  const state = () => page.evaluate(() => kudutunes.state());
+  const shown = () => page.evaluate(() => kudutunes.app.piece.shown.map(n => ({ t: n.t, d: n.d, p: n.p, id: n.id })));
+  const inEditor = () => page.waitForFunction(() => kudutunes.state().screen === 'editor', null, { timeout: 600000 });
   /** Opens a sound file and waits for the new piece (not the one already on the screen). */
   const open = async file => {
     const was = (await state()).id;
     await page.setInputFiles('#pickSound', files + file);
-    await page.waitForFunction(was => { const s = kudunotes.state(); return s.screen === 'editor' && s.id !== was; }, was, { timeout: 600000 });
+    await page.waitForFunction(was => { const s = kudutunes.state(); return s.screen === 'editor' && s.id !== was; }, was, { timeout: 600000 });
     await page.waitForTimeout(300);
   };
   /** Where a note is on the page (the middle of its bar in the piano roll). */
@@ -69,7 +69,7 @@ try {
 
   await step('the app opens on its first screen', async () => {
     await page.goto(URL_);
-    await page.waitForFunction(() => window.kudunotes);
+    await page.waitForFunction(() => window.kudutunes);
     assert.equal((await state()).screen, 'home');
     assert.ok(await page.isVisible('text=Open a sound file'));
     assert.ok(!(await page.isVisible('#saved')), 'no pieces yet');
@@ -91,24 +91,24 @@ try {
   await step('playing: the notes and the recording together, slower, a repeated part, a jump', async () => {
     assert.ok(await page.isVisible('#mixBox'), 'the recording is there to mix in');
     await page.click('#play');
-    await page.waitForFunction(() => kudunotes.state().time > 1.2, null, { timeout: 60000 });
+    await page.waitForFunction(() => kudutunes.state().time > 1.2, null, { timeout: 60000 });
     assert.ok((await state()).playing);
-    assert.ok(await page.evaluate(() => kudunotes.app.player.synth.playing.size > 0 || kudunotes.app.player.queuedTo > 1), 'notes were handed to the sound system');
+    assert.ok(await page.evaluate(() => kudutunes.app.player.synth.playing.size > 0 || kudutunes.app.player.queuedTo > 1), 'notes were handed to the sound system');
     await shot(page, '03-playing');
     await page.keyboard.press('Space');
     assert.equal((await state()).playing, false);
 
     await page.selectOption('#speed', '0.5');
-    assert.equal(await page.evaluate(() => kudunotes.app.player.sound.playbackRate), 0.5);
-    assert.equal(await page.evaluate(() => kudunotes.app.player.sound.preservesPitch), true, 'slower without changing the pitch');
+    assert.equal(await page.evaluate(() => kudutunes.app.player.sound.playbackRate), 0.5);
+    assert.equal(await page.evaluate(() => kudutunes.app.player.sound.preservesPitch), true, 'slower without changing the pitch');
     await page.fill('#mix', '1');
-    assert.equal(await page.evaluate(() => kudunotes.app.player.sound.volume), 0, 'all the way to Notes: the recording is silent');
+    assert.equal(await page.evaluate(() => kudutunes.app.player.sound.volume), 0, 'all the way to Notes: the recording is silent');
     await page.fill('#mix', '0.5');
 
     // Drag along the ruler: repeat from about 1 s to 2 s.
-    const r = await page.evaluate(() => { const b = document.getElementById('roll').getBoundingClientRect(), l = kudunotes.app.line; return { y: b.top + 10, a: b.left + l.x(1), b: b.left + l.x(2) }; });
+    const r = await page.evaluate(() => { const b = document.getElementById('roll').getBoundingClientRect(), l = kudutunes.app.line; return { y: b.top + 10, a: b.left + l.x(1), b: b.left + l.x(2) }; });
     await page.mouse.move(r.a, r.y); await page.mouse.down(); await page.mouse.move(r.b, r.y, { steps: 5 }); await page.mouse.up();
-    const loop = await page.evaluate(() => kudunotes.app.player.loop);
+    const loop = await page.evaluate(() => kudutunes.app.player.loop);
     assert.ok(loop && Math.abs(loop.from - 1) < 0.05 && Math.abs(loop.to - 2) < 0.05, 'a part chosen to repeat');
     await page.selectOption('#speed', '1.25');
     await page.click('#play');
@@ -117,14 +117,14 @@ try {
     assert.ok(t >= 0.95 && t <= 2.05, `still inside the repeated part after going round (${t.toFixed(2)})`);
     await page.click('#play');
     await page.click('#clearLoop');
-    assert.equal(await page.evaluate(() => kudunotes.app.player.loop), null);
+    assert.equal(await page.evaluate(() => kudutunes.app.player.loop), null);
     await page.selectOption('#speed', '1');
     // A click on the ruler jumps there.
-    const j = await page.evaluate(() => { const b = document.getElementById('roll').getBoundingClientRect(); return { x: b.left + kudunotes.app.line.x(4), y: b.top + 10 }; });
+    const j = await page.evaluate(() => { const b = document.getElementById('roll').getBoundingClientRect(); return { x: b.left + kudutunes.app.line.x(4), y: b.top + 10 }; });
     await page.mouse.click(j.x, j.y);
     assert.ok(Math.abs((await state()).time - 4) < 0.05, 'jumped to 4 seconds');
     await page.selectOption('#voice', 'guitar');
-    assert.equal(await page.evaluate(() => kudunotes.app.player.voice), 'guitar');
+    assert.equal(await page.evaluate(() => kudutunes.app.player.voice), 'guitar');
     await page.keyboard.press('Home');
   });
 
@@ -153,7 +153,7 @@ try {
     assert.equal((await shown()).length, before.length - 1);
 
     // A double click on an empty place adds a note.
-    const spot = await page.evaluate(() => { const b = document.getElementById('roll').getBoundingClientRect(), { roll } = window.__views; return { x: b.left + kudunotes.app.line.x(8.5), y: b.top + roll.y(64) + roll.row / 2 }; });
+    const spot = await page.evaluate(() => { const b = document.getElementById('roll').getBoundingClientRect(), { roll } = window.__views; return { x: b.left + kudutunes.app.line.x(8.5), y: b.top + roll.y(64) + roll.row / 2 }; });
     await page.mouse.dblclick(spot.x, spot.y);
     const added = (await shown()).find(n => Math.abs(n.t - 8.5) < 0.05);
     assert.ok(added && added.p === 64, 'a note added where it was double-clicked');
@@ -167,7 +167,7 @@ try {
     for (let i = 0; i < 5; i++) await page.click('#undo');
 
     // A box dragged round several notes chooses them.
-    const box = await page.evaluate(() => { const b = document.getElementById('roll').getBoundingClientRect(), l = kudunotes.app.line; return { x0: b.left + l.x(0.1), x1: b.left + l.x(2.2), y0: b.top + 40, y1: b.bottom - 10 }; });
+    const box = await page.evaluate(() => { const b = document.getElementById('roll').getBoundingClientRect(), l = kudutunes.app.line; return { x0: b.left + l.x(0.1), x1: b.left + l.x(2.2), y0: b.top + 40, y1: b.bottom - 10 }; });
     await page.mouse.move(box.x0, box.y0); await page.mouse.down(); await page.mouse.move(box.x1, box.y1, { steps: 5 }); await page.mouse.up();
     assert.equal((await state()).selected, 4, 'the first four notes chosen with a box');
     await page.keyboard.press('Escape');
@@ -180,7 +180,7 @@ try {
     const got = await shown(), c = compare(PICKING, got);
     assert.ok(c.found >= 0.9, `${Math.round(c.found * 100)}% of the real notes found`);
     assert.ok(c.right >= 0.75, `${Math.round(c.right * 100)}% of the notes shown are real`);
-    const first = await page.evaluate(() => { const a = kudunotes.app, n = a.piece.shown[0]; return { p: n.p, place: a.placed.get(n.id) }; });
+    const first = await page.evaluate(() => { const a = kudutunes.app, n = a.piece.shown[0]; return { p: n.p, place: a.placed.get(n.id) }; });
     assert.deepEqual(first, { p: 40, place: { string: 0, fret: 0 } }, 'the low E is the open sixth string');
     await shot(page, '05-guitar-picking');
   });
@@ -202,18 +202,18 @@ try {
     assert.match(await page.textContent('#tabNote'), /outside what the guitar can play/);
     await page.fill('#capo', '0'); await page.press('#capo', 'Tab');
     await page.selectOption('#tuning', 'dropD');
-    assert.deepEqual(await page.evaluate(() => { const a = kudunotes.app, n = a.piece.shown[0]; return a.placed.get(n.id); }), { string: 0, fret: 2 }, 'in Drop D the low E is the second fret');
+    assert.deepEqual(await page.evaluate(() => { const a = kudutunes.app, n = a.piece.shown[0]; return a.placed.get(n.id); }), { string: 0, fret: 2 }, 'in Drop D the low E is the second fret');
     await page.selectOption('#tuning', 'standard');
 
     // The open B string (59): played on the G string instead, fret 4.
-    const b = await page.evaluate(() => kudunotes.app.piece.shown.find(n => n.p === 59).id);
+    const b = await page.evaluate(() => kudutunes.app.piece.shown.find(n => n.p === 59).id);
     const bar = await barOf(b);
     await page.mouse.click(bar.x, bar.y);
-    assert.deepEqual(await page.evaluate(id => kudunotes.app.placed.get(id), b), { string: 4, fret: 0 });
+    assert.deepEqual(await page.evaluate(id => kudutunes.app.placed.get(id), b), { string: 4, fret: 0 });
     await page.click('#stringDown');
-    assert.deepEqual(await page.evaluate(id => kudunotes.app.placed.get(id), b), { string: 3, fret: 4 });
+    assert.deepEqual(await page.evaluate(id => kudutunes.app.placed.get(id), b), { string: 3, fret: 4 });
     await page.keyboard.press(']');
-    assert.deepEqual(await page.evaluate(id => kudunotes.app.placed.get(id), b), { string: 4, fret: 0 });
+    assert.deepEqual(await page.evaluate(id => kudutunes.app.placed.get(id), b), { string: 4, fret: 0 });
     await page.keyboard.press('Control+z'); await page.keyboard.press('Control+z');
   });
 
@@ -242,7 +242,7 @@ try {
     assert.deepEqual(names.sort(), ['My picking', 'Twinkle piano']);
     await shot(page, '06-pieces');
     await page.reload();
-    await page.waitForFunction(() => window.kudunotes);
+    await page.waitForFunction(() => window.kudutunes);
     await page.waitForSelector('.piece');
     await page.click('.piece:has-text("My picking") button.main');
     await inEditor();
@@ -261,9 +261,9 @@ try {
     assert.equal(await page.inputValue('#name'), 'Picking guitar');
     assert.ok(await page.isVisible('#mixBox'));
     await page.click('#toHome');
-    await page.setInputFiles('#pickProject', { name: 'wrong.kudunotes', mimeType: 'application/octet-stream', buffer: Buffer.from('not a project') });
+    await page.setInputFiles('#pickProject', { name: 'wrong.kudutunes', mimeType: 'application/octet-stream', buffer: Buffer.from('not a project') });
     await page.waitForSelector('#toast.show');
-    assert.match(await page.textContent('#toast'), /isn't a KUDUNOTES project file/);
+    assert.match(await page.textContent('#toast'), /isn't a KUDUTUNES project file/);
     assert.equal((await state()).screen, 'home');
     await page.setInputFiles('#pickSound', { name: 'broken.mp3', mimeType: 'audio/mpeg', buffer: Buffer.from('this is not sound at all') });
     await page.waitForFunction(() => /couldn't be read/.test(document.getElementById('toast').textContent), null, { timeout: 30000 });
@@ -282,24 +282,24 @@ try {
   await step('recording with the microphone: it records, listens and opens the result with its recording', async () => {
     await page.click('#toHome');
     await page.click('#startRecord');
-    await page.waitForFunction(() => kudunotes.state().screen === 'record', null, { timeout: 30000 });
+    await page.waitForFunction(() => kudutunes.state().screen === 'record', null, { timeout: 30000 });
     await page.waitForFunction(() => document.getElementById('clock').textContent >= '0:03', null, { timeout: 30000 });
     assert.ok(await page.evaluate(() => parseFloat(document.querySelector('#level i').style.width) >= 0), 'the level shows');
     await shot(page, '07b-recording');
     const was = (await state()).id;
     await page.click('#stopRecord');
-    await page.waitForFunction(was => { const s = kudunotes.state(); return s.screen === 'editor' && s.id !== was; }, was, { timeout: 600000 });
+    await page.waitForFunction(was => { const s = kudutunes.state(); return s.screen === 'editor' && s.id !== was; }, was, { timeout: 600000 });
     assert.match(await page.inputValue('#name'), /^Recording /);
     assert.ok(await page.isVisible('#mixBox'), 'the recording can be played along');
-    assert.ok(await page.evaluate(() => kudunotes.app.piece.duration) >= 2.5, 'about three seconds were recorded');
+    assert.ok(await page.evaluate(() => kudutunes.app.piece.duration) >= 2.5, 'about three seconds were recorded');
     // Cancelling a recording goes back without making a piece.
     await page.click('#toHome');
     await page.waitForSelector('.piece:has-text("Recording ")');
     const count = await page.$$eval('.piece', e => e.length);
     await page.click('#startRecord');
-    await page.waitForFunction(() => kudunotes.state().screen === 'record');
+    await page.waitForFunction(() => kudutunes.state().screen === 'record');
     await page.click('#cancelRecord');
-    await page.waitForFunction(() => kudunotes.state().screen === 'home');
+    await page.waitForFunction(() => kudutunes.state().screen === 'home');
     await page.waitForTimeout(300);
     assert.equal(await page.$$eval('.piece', e => e.length), count);
     await page.click('.piece button.main');
@@ -308,7 +308,7 @@ try {
 
   await step('Help and About, with the credit line', async () => {
     await page.click('#help');
-    assert.ok(await page.isVisible('text=How to use KUDUNOTES'));
+    assert.ok(await page.isVisible('text=How to use KUDUTUNES'));
     await shot(page, '08-help');
     await page.click('#helpBox [data-close]');
     await page.click('#about');
@@ -322,9 +322,9 @@ try {
   watch(dark);
   await step('the dark look, with a piece from a project file', async () => {
     await dark.goto(URL_);
-    await dark.waitForFunction(() => window.kudunotes);
+    await dark.waitForFunction(() => window.kudutunes);
     await dark.setInputFiles('#pickProject', project);
-    await dark.waitForFunction(() => kudunotes.state().screen === 'editor');
+    await dark.waitForFunction(() => kudutunes.state().screen === 'editor');
     await dark.waitForTimeout(400);
     await shot(dark, '09-dark');
   });
@@ -334,13 +334,13 @@ try {
   watch(phone);
   await step('on a phone: it opens, shows a piece and plays', async () => {
     await phone.goto(URL_);
-    await phone.waitForFunction(() => window.kudunotes);
+    await phone.waitForFunction(() => window.kudutunes);
     await shot(phone, '10-phone-home');
     await phone.setInputFiles('#pickProject', project);
-    await phone.waitForFunction(() => kudunotes.state().screen === 'editor');
+    await phone.waitForFunction(() => kudutunes.state().screen === 'editor');
     assert.equal(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'nothing hangs off the side');
     await phone.tap('#play');
-    await phone.waitForFunction(() => kudunotes.state().time > 0.5, null, { timeout: 60000 });
+    await phone.waitForFunction(() => kudutunes.state().time > 0.5, null, { timeout: 60000 });
     await shot(phone, '11-phone-piece');
     await phone.tap('#play');
   });

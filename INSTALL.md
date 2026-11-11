@@ -1,6 +1,6 @@
-# Installing KUDUNOTES on your own server
+# Installing KUDUTUNES on your own server
 
-KUDUNOTES is a folder of files. The server only hands them out; all the listening happens in the visitor's browser,
+KUDUTUNES is a folder of files. The server only hands them out; all the listening happens in the visitor's browser,
 so a small server is plenty and nothing needs to keep running besides the web server.
 
 **You need**
@@ -41,14 +41,20 @@ If Caddy already serves other sites, add the block from `deploy/Caddyfile` to yo
 
 ```
 sudo apt install -y nginx certbot python3-certbot-nginx
-sudo cp /var/www/kudunotes/deploy/nginx.conf /etc/nginx/sites-available/kudunotes
-sudo sed -i 's/notes.example.com/YOUR.ADDRESS.HERE/' /etc/nginx/sites-available/kudunotes
-sudo ln -s /etc/nginx/sites-available/kudunotes /etc/nginx/sites-enabled/kudunotes
+sudo cp /var/www/kudunotes/deploy/nginx.conf /etc/nginx/sites-available/kudutunes
+sudo sed -i 's/notes.example.com/YOUR.ADDRESS.HERE/' /etc/nginx/sites-available/kudutunes
+sudo ln -s /etc/nginx/sites-available/kudutunes /etc/nginx/sites-enabled/kudutunes
 sudo nginx -t && sudo systemctl reload nginx
 sudo certbot --nginx -d YOUR.ADDRESS.HERE
 ```
 
 Certbot adds the https part to the file and renews the certificate by itself.
+
+### C. In a folder of a site nginx already serves (for example `https://example.com/kudutunes/`)
+
+Follow the steps in `deploy/nginx-subfolder.conf`: one small part goes at the top of the site's file in
+`/etc/nginx/sites-available/`, the rest inside its existing https `server { }` block. Back up that file first, then
+`sudo nginx -t && sudo systemctl reload nginx`. The site keeps its certificate; nothing else on it changes.
 
 ## 3. Check it
 
@@ -76,8 +82,8 @@ a copy of itself for working offline, and replaces it when the version number ch
 sudo rm -rf /var/www/kudunotes
 ```
 
-and take its block out of the Caddyfile, or delete `/etc/nginx/sites-enabled/kudunotes` and
-`/etc/nginx/sites-available/kudunotes`, then reload the web server.
+and take its block out of the Caddyfile, or delete `/etc/nginx/sites-enabled/kudutunes` and
+`/etc/nginx/sites-available/kudutunes`, then reload the web server.
 
 ## Good to know
 

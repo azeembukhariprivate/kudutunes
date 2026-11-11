@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KUDUNOTES</title>
-<meta name="description" content="KUDUNOTES listens to a recording and writes out its notes: a piano roll and guitar tabs you can play back, slow down, correct and save. Free, and everything happens on your own device.">
+<title>KUDUTUNES</title>
+<meta name="description" content="KUDUTUNES listens to a recording and writes out its notes: a piano roll and guitar tabs you can play back, slow down, correct and save. Free, and everything happens on your own device.">
 <meta name="theme-color" content="#c2255c">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/icons/icon-192.png">
@@ -93,7 +93,7 @@
 <body>
 <header>
   <img src="assets/icons/icon-192.png" alt="">
-  <h1>KUDUNOTES</h1>
+  <h1>KUDUTUNES</h1>
   <input id="name" aria-label="The piece's name" hidden>
   <span class="grow"></span>
   <button id="toHome" hidden>All pieces</button>
@@ -107,12 +107,12 @@
 <main>
   <section id="home">
     <div class="wrap">
-      <p class="lead">KUDUNOTES listens to a recording and writes out its notes, as a piano roll and as guitar tabs. Play them back, slow them down, and put right what it misheard.</p>
+      <p class="lead">KUDUTUNES listens to a recording and writes out its notes, as a piano roll and as guitar tabs. Play them back, slow them down, and put right what it misheard.</p>
       <div class="card first">
         <div class="starts">
           <label class="filebutton main-file"><input type="file" id="pickSound" accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.ogg,.oga,.opus,.flac,.mp4,.mov,.webm,.mkv">Open a sound file…</label>
           <button id="startRecord">Record with the microphone</button>
-          <label class="filebutton"><input type="file" id="pickProject" accept=".kudunotes">Open a project file…</label>
+          <label class="filebutton"><input type="file" id="pickProject" accept=".kudutunes,.kudunotes">Open a project file…</label>
         </div>
         <p class="hint">Or drop a file anywhere on this page. It works best with one or two instruments playing, such as a piano alone or a guitar alone. Everything happens on this device: your recordings are never sent anywhere.</p>
       </div>
@@ -180,9 +180,9 @@
 </main>
 
 <dialog id="helpBox">
-  <h2>How to use KUDUNOTES</h2>
+  <h2>How to use KUDUTUNES</h2>
   <ul>
-    <li><b>Start</b> by opening a sound file (MP3, WAV, M4A, or a video), or by recording with the microphone. KUDUNOTES listens and shows the notes.</li>
+    <li><b>Start</b> by opening a sound file (MP3, WAV, M4A, or a video), or by recording with the microphone. KUDUTUNES listens and shows the notes.</li>
     <li><b>The piano roll</b> (top) shows each note as a bar beside a keyboard: higher notes are higher up, time runs left to right. <b>The tabs</b> (bottom) show the same notes on six guitar strings as fret numbers.</li>
     <li><b>Play</b> with the button or <kbd>Space</kbd>. Click the time ruler to jump. Drag along the ruler to repeat a part. Slow it down with Speed; the pitch stays the same.</li>
     <li><b>Recording / Notes</b> mixes what you hear: all the way left is the recording only, right is the app's notes only. Listening to both is the quickest way to hear a wrong note.</li>
@@ -197,7 +197,7 @@
 </dialog>
 
 <dialog id="aboutBox">
-  <h2>KUDUNOTES <span id="version" style="font-weight:400; color:var(--subtle); font-size:14px"></span></h2>
+  <h2>KUDUTUNES <span id="version" style="font-weight:400; color:var(--subtle); font-size:14px"></span></h2>
   <p>Listens to music and writes out its notes for piano and guitar.</p>
   <p>Made by Azeem, with Claude and <span class="heart" aria-label="love">♥</span></p>
   <p>Free and open source (MIT). Everything happens on your own device: your recordings and pieces are never sent anywhere, and the app works without the internet once it has been opened.</p>

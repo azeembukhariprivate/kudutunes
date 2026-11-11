@@ -1,4 +1,4 @@
-// KUDUNOTES: the screens, and everything the buttons and keys do.
+// KUDUTUNES: the screens, and everything the buttons and keys do.
 import { ready, toMono, findNotes, RATE } from './listen.js';
 import { tidy } from './tidy.js';
 import { Piece, DEFAULTS } from './piece.js';
@@ -9,7 +9,7 @@ import { midiFile } from './midi.js';
 import { pack, unpack } from './project.js';
 import * as store from './store.js';
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.1.0';
 
 const $ = id => document.getElementById(id);
 const testing = new URLSearchParams(location.search).has('test');
@@ -272,7 +272,7 @@ async function openProject(file) {
 
 function openAny(file) {
   if (!file) return;
-  if (/\.kudunotes$/i.test(file.name)) openProject(file);
+  if (/\.kudu(tunes|notes)$/i.test(file.name)) openProject(file); // .kudunotes: saved before the app was renamed
   else openSound(file);
 }
 
@@ -348,7 +348,7 @@ async function saveProjectFile() {
   const p = app.piece.plain();
   let sound = null;
   if (app.sound && app.sound.blob.size <= store.BIGGEST_SOUND) sound = { bytes: new Uint8Array(await app.sound.blob.arrayBuffer()), type: app.sound.blob.type, name: app.sound.name };
-  download(pack(p, sound), fileName() + '.kudunotes', 'application/octet-stream');
+  download(pack(p, sound), fileName() + '.kudutunes', 'application/octet-stream');
   toast(sound ? 'Saved, with the recording inside.' : app.sound ? 'Saved without the recording (it is too big). The notes are all there.' : 'Saved.');
 }
 
@@ -483,7 +483,7 @@ if ('serviceWorker' in navigator && !testing && (location.protocol === 'https:' 
 if (testing) {
   // For the browser test: the app's insides, and a way in for sound made by the test.
   window.__views = { roll, tabs };
-  window.kudunotes = {
+  window.kudutunes = {
     app, store, DEFAULTS, RATE,
     listen: (samples, name = 'Test') => listenTo(samples, samples.length / RATE, name, null),
     openSound, openProject, saveNow, showHome,

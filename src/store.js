@@ -1,6 +1,7 @@
 // Pieces are kept in the browser on this device (IndexedDB): the notes and settings always, and the recording when
 // the browser has room for it. Nothing is sent anywhere.
 
+// The store keeps the app's first name, so pieces saved before it was renamed are still there.
 const NAME = 'kudunotes', VERSION = 1;
 export const BIGGEST_SOUND = 80 * 1024 * 1024; // recordings larger than this aren't kept (the notes still are)
 

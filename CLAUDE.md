@@ -1,8 +1,10 @@
-# KUDUNOTES
+# KUDUTUNES
 
 Listens to music and writes out its notes for piano and guitar: a free web app. Open a sound file or record, and
 get a piano roll and guitar tabs to play back, slow down, correct and save. Everything happens in the browser.
 Part of the KUDU family of free, open-source (MIT) apps by Azeem Bukhari.
+It was first called KUDUNOTES: the GitHub repository, the server folder (`/var/www/kudunotes`) and the address on
+Azeem's server (`azeembukhari.com/kudunotes/`) still carry that name, and so does the browser's store of pieces.
 
 ## Working with Azeem (the owner)
 
@@ -53,9 +55,10 @@ beat, moving to another key, live listening, printing.
 - **Playback** (`src/player.js`, `src/synth.js`): the recording plays in an `<audio>` element (the browser keeps its
   pitch when slowed) and is the clock; the notes are made in code (a struck string and a plucked string, worked out
   once per pitch) and handed to WebAudio a moment ahead.
-- **Keeping** (`src/store.js`): IndexedDB `kudunotes`: `pieces` and `sounds` (recordings up to 80 MB).
-  `src/project.js` is the `.kudunotes` file; `src/midi.js` writes MIDI.
-- `src/main.js`: the screens, buttons and keys. `?test` adds `window.kudunotes` for the browser test.
+- **Keeping** (`src/store.js`): IndexedDB `kudunotes` (the app's first name, kept so
+  earlier pieces stay): `pieces` and `sounds` (recordings up to 80 MB). `src/project.js` is the `.kudutunes` file (it
+  also opens `.kudunotes` files saved before the rename); `src/midi.js` writes MIDI.
+- `src/main.js`: the screens, buttons and keys. `?test` adds `window.kudutunes` for the browser test.
 - Works offline: `sw.js` lists every file (`node tools/list_files.mjs` writes the list); its `VERSION` must match
   `package.json` and `src/main.js` (a test checks).
 - Nothing is sent anywhere, and nothing is loaded from other sites (a test checks). `tools/serve.mjs` and `deploy/`
