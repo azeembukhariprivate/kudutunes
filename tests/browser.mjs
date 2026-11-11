@@ -102,7 +102,7 @@ try {
     assert.equal(await page.evaluate(() => kudutunes.app.player.sound.playbackRate), 0.5);
     assert.equal(await page.evaluate(() => kudutunes.app.player.sound.preservesPitch), true, 'slower without changing the pitch');
     await page.fill('#mix', '1');
-    assert.equal(await page.evaluate(() => kudutunes.app.player.sound.volume), 0, 'all the way to Notes: the recording is silent');
+    assert.equal(await page.evaluate(() => kudutunes.app.player.soundOut.gain.value), 0, 'all the way to Notes: the recording is silent');
     await page.fill('#mix', '0.5');
 
     // Drag along the ruler: repeat from about 1 s to 2 s.
@@ -126,6 +126,37 @@ try {
     await page.selectOption('#voice', 'guitar');
     assert.equal(await page.evaluate(() => kudutunes.app.player.voice), 'guitar');
     await page.keyboard.press('Home');
+  });
+
+  await step('the Recording / Notes slider really silences the recording, also where its volume is fixed (iPhone, iPad)', async () => {
+    const iphone = await browser.newPage({ viewport: { width: 1200, height: 760 } });
+    watch(iphone);
+    // On an iPhone or iPad a recording's own volume can't be changed: it stays at full. The same here.
+    await iphone.addInitScript(() => Object.defineProperty(HTMLMediaElement.prototype, 'volume', { get: () => 1, set: () => {}, configurable: true }));
+    await iphone.goto(URL_);
+    await iphone.waitForFunction(() => window.kudutunes);
+    await iphone.setInputFiles('#pickSound', files + 'Twinkle piano.wav');
+    await iphone.waitForFunction(() => kudutunes.state().screen === 'editor', null, { timeout: 600000 });
+    await iphone.click('#play');
+    await iphone.waitForFunction(() => kudutunes.state().time > 0.4, null, { timeout: 60000 });
+    // What reaches the speakers from the recording, measured.
+    const loudness = () => iphone.evaluate(async () => {
+      const p = kudutunes.app.player;
+      if (!p.meter) { p.meter = p.ctx.createAnalyser(); p.soundOut.connect(p.meter); }
+      await new Promise(r => setTimeout(r, 400));
+      const d = new Float32Array(p.meter.fftSize);
+      let most = 0;
+      for (let i = 0; i < 6; i++) { p.meter.getFloatTimeDomainData(d); for (const v of d) most = Math.max(most, Math.abs(v)); await new Promise(r => setTimeout(r, 60)); }
+      return most;
+    });
+    await iphone.fill('#mix', '0');
+    const full = await loudness();
+    assert.ok(full > 0.01, `the recording is heard with the slider at Recording (${full.toFixed(3)})`);
+    await iphone.fill('#mix', '1');
+    const none = await loudness();
+    assert.ok(none < 0.0001, `the recording is silent with the slider at Notes (${none.toFixed(5)})`);
+    await iphone.click('#play');
+    await iphone.close();
   });
 
   await step('correcting: choose, move, stretch, delete, add, undo and redo', async () => {

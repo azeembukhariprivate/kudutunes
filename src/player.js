@@ -30,10 +30,29 @@ export class Player {
       this.ctx = new AC();
       this.notesOut = this.ctx.createGain();
       this.notesOut.connect(this.ctx.destination);
+      this.soundOut = this.ctx.createGain();
+      this.soundOut.connect(this.ctx.destination);
       this.synth = new Synth(this.ctx, this.notesOut);
-      this.applyMix();
     }
+    this.route();
+    this.applyMix();
     if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+  }
+
+  /**
+   * Sends the recording through the app's own volume control. An <audio> element's own volume can't be changed on an
+   * iPhone or iPad (it stays at full), so the "Recording / Notes" slider couldn't quieten it there.
+   */
+  route() {
+    const el = this.sound;
+    if (!el || !this.ctx || el.routed) return;
+    try {
+      this.ctx.createMediaElementSource(el).connect(this.soundOut);
+      el.routed = true;
+      el.volume = 1;
+    } catch {
+      // Not possible in this browser: its own volume control is used instead.
+    }
   }
 
   /** Sets (or clears) the recording to play along. */
@@ -47,6 +66,7 @@ export class Player {
     el.preservesPitch = true;
     el.onerror = () => { if (this.sound === el) this.sound = null; }; // a kind the browser can't play: notes only
     this.sound = el;
+    this.route();
     this.applyMix();
     this.applySpeed();
   }
@@ -56,7 +76,8 @@ export class Player {
   setMix(v) { this.mix = v; this.applyMix(); }
   applyMix() {
     const rec = Math.min(1, 2 * (1 - this.mix)), notes = Math.min(1, 2 * this.mix);
-    if (this.sound) this.sound.volume = rec;
+    if (this.sound && this.sound.routed) this.soundOut.gain.value = rec;
+    else if (this.sound) this.sound.volume = rec;
     if (this.notesOut) this.notesOut.gain.value = (this.sound ? notes : 1) * 0.8;
   }
 

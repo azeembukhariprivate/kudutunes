@@ -1,6 +1,6 @@
 // Keeps a copy of the app on the device, so it opens without the internet. A new version (VERSION below, the same
 // as in package.json and src/main.js) fetches everything afresh.
-const VERSION = '1.1.0';
+const VERSION = '1.1.1';
 const CACHE = 'kudutunes-' + VERSION;
 const FILES = [
   './',

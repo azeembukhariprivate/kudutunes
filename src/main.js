@@ -9,7 +9,7 @@ import { midiFile } from './midi.js';
 import { pack, unpack } from './project.js';
 import * as store from './store.js';
 
-export const VERSION = '1.1.0';
+export const VERSION = '1.1.1';
 
 const $ = id => document.getElementById(id);
 const testing = new URLSearchParams(location.search).has('test');

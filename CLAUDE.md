@@ -54,7 +54,7 @@ beat, moving to another key, live listening, printing.
 - **Pictures** (`src/view.js`): `Roll` and `Tabs` draw on canvases sharing one `TimeLine`; the roll handles the
   mouse (choose, drag, stretch, box, ruler for jumping and repeating).
 - **Playback** (`src/player.js`, `src/synth.js`): the recording plays in an `<audio>` element (the browser keeps its
-  pitch when slowed) and is the clock; the notes are made in code (a struck string and a plucked string, worked out
+  pitch when slowed), sent through WebAudio (`route`: its own volume can't be changed on iPhones and iPads), and is the clock; the notes are made in code (a struck string and a plucked string, worked out
   once per pitch) and handed to WebAudio a moment ahead.
 - **Keeping** (`src/store.js`): IndexedDB `kudunotes` (the app's first name, kept so
   earlier pieces stay): `pieces` and `sounds` (recordings up to 80 MB). `src/project.js` is the `.kudutunes` file (it
