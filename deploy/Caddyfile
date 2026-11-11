@@ -1,0 +1,22 @@
+# KUDUNOTES with Caddy, which gets and renews the HTTPS certificate by itself.
+# Change the address on the first line to your own, and the folder if you put the app elsewhere.
+notes.example.com {
+	root * /var/www/kudunotes
+	file_server
+	encode gzip zstd
+
+	# The app keeps its own copy for working offline; these two must always be fresh so new versions arrive.
+	@fresh path /sw.js /index.html /
+	header @fresh Cache-Control "no-cache"
+
+	# Nothing here is for visitors.
+	@private path /.git* /tests/* /tools/* /deploy/* /screenshots/* /node_modules/* /package.json /CLAUDE.md /INSTALL.md
+	respond @private 404
+
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		Permissions-Policy "microphone=(self), camera=(), geolocation=()"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+	}
+}

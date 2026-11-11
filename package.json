@@ -1,0 +1,13 @@
+{
+  "name": "kudunotes",
+  "version": "1.0.0",
+  "description": "Listens to music and writes out its notes for piano and guitar. A free web app; everything happens on your own device.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "test:browser": "node tests/browser.mjs",
+    "serve": "node tools/serve.mjs 8080"
+  }
+}

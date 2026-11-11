@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KUDUNOTES</title>
+<meta name="description" content="KUDUNOTES listens to a recording and writes out its notes: a piano roll and guitar tabs you can play back, slow down, correct and save. Free, and everything happens on your own device.">
+<meta name="theme-color" content="#c2255c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/icons/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<style>
+  :root { --bg:#f6f7f9; --card:#ffffff; --row:#f0f2f5; --head:#eceff3; --line:#dfe3ea; --text:#1c2330; --subtle:#5b6676; --accent:#c2255c; --on-accent:#ffffff; --key:#ffffff; --key-dark:#39404c; --bad:#b3261e; --ok-bg:#e6f4ea; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#15181d; --card:#1e2229; --row:#242931; --head:#262b33; --line:#333a45; --text:#eef1f5; --subtle:#a3adba; --accent:#f06595; --on-accent:#1b0810; --key:#d9dde3; --key-dark:#11141a; --bad:#ff8a80; --ok-bg:#1d3324; }
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; display:flex; flex-direction:column; }
+  [hidden] { display:none !important; }
+  header { display:flex; align-items:center; gap:10px; padding:8px 14px; background:var(--card); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  header img { width:30px; height:30px; border-radius:7px; }
+  header h1 { font-size:17px; margin:0; letter-spacing:.4px; }
+  #name { font:inherit; font-size:14px; color:var(--text); background:transparent; border:1px solid transparent; border-radius:6px; padding:4px 8px; min-width:120px; max-width:340px; }
+  #name:hover, #name:focus { border-color:var(--line); background:var(--bg); outline:none; }
+  .grow { flex:1; }
+  button, select, .filebutton { font:inherit; color:var(--text); background:var(--card); border:1px solid var(--line); border-radius:7px; padding:6px 11px; cursor:pointer; min-height:32px; }
+  button:hover:not(:disabled), .filebutton:hover { background:var(--row); }
+  button:disabled { opacity:.45; cursor:default; }
+  button.main { background:var(--accent); color:var(--on-accent); border-color:var(--accent); font-weight:600; }
+  button.main:hover:not(:disabled) { filter:brightness(1.08); background:var(--accent); }
+  button:focus-visible, select:focus-visible, input:focus-visible, .filebutton:focus-within { outline:2px solid var(--accent); outline-offset:1px; }
+  input[type=number] { font:inherit; color:var(--text); background:var(--card); border:1px solid var(--line); border-radius:7px; padding:5px 6px; width:56px; min-height:32px; }
+  input[type=range] { accent-color:var(--accent); vertical-align:middle; }
+  .filebutton input { position:absolute; opacity:0; width:1px; height:1px; }
+  .filebutton { display:inline-flex; align-items:center; position:relative; }
+  .filebutton.main-file { background:var(--accent); color:var(--on-accent); border-color:var(--accent); font-weight:600; }
+  .filebutton.main-file:hover { background:var(--accent); filter:brightness(1.08); }
+  #tuning { max-width:150px; }
+  main { flex:1; min-height:0; display:flex; flex-direction:column; }
+
+  /* The first screen */
+  #home { overflow:auto; padding:28px 20px 40px; }
+  .wrap { max-width:860px; margin:0 auto; }
+  .lead { font-size:17px; color:var(--subtle); margin:0 0 18px; max-width:640px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin-bottom:16px; }
+  .starts { display:flex; flex-wrap:wrap; gap:10px; }
+  .starts .filebutton, .starts button { padding:10px 16px; font-size:15px; }
+  .hint { color:var(--subtle); font-size:13px; margin:12px 0 0; }
+  h2 { font-size:16px; margin:0 0 10px; }
+  .piece { display:flex; align-items:center; gap:10px; padding:9px 0; border-top:1px solid var(--line); }
+  .piece:first-of-type { border-top:0; }
+  .piece .what { flex:1; min-width:0; }
+  .piece .what b { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .piece .what span { color:var(--subtle); font-size:12.5px; }
+  .drop #home .card.first { outline:2px dashed var(--accent); }
+
+  /* Listening and recording */
+  #busy, #record { align-items:center; justify-content:center; padding:20px; }
+  .centre { text-align:center; max-width:460px; }
+  .centre h2 { font-size:20px; }
+  progress { width:320px; max-width:80vw; height:10px; accent-color:var(--accent); }
+  #level { width:320px; max-width:80vw; height:10px; background:var(--row); border-radius:5px; overflow:hidden; margin:14px auto; }
+  #level i { display:block; height:100%; width:0; background:var(--accent); }
+  #clock { font-size:34px; font-variant-numeric:tabular-nums; margin:6px 0; }
+
+  /* The working screen */
+  .bar { display:flex; align-items:center; gap:7px; padding:7px 12px; background:var(--card); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .bar label { color:var(--subtle); font-size:12.5px; display:inline-flex; align-items:center; gap:6px; }
+  .bar .sep { width:1px; align-self:stretch; background:var(--line); margin:0 4px; }
+  #time { font-variant-numeric:tabular-nums; min-width:92px; color:var(--subtle); }
+  #play { min-width:84px; }
+  #views { flex:1; min-height:0; display:flex; flex-direction:column; }
+  #roll { flex:3; min-height:160px; width:100%; display:block; touch-action:none; }
+  #tabs { flex:1; min-height:150px; max-height:210px; width:100%; display:block; border-top:1px solid var(--line); touch-action:none; }
+  .label { padding:3px 12px; font-size:12px; color:var(--subtle); background:var(--head); border-top:1px solid var(--line); border-bottom:1px solid var(--line); display:flex; gap:14px; }
+  #status { padding:5px 12px; font-size:12.5px; color:var(--subtle); background:var(--card); border-top:1px solid var(--line); min-height:28px; }
+
+  dialog { border:1px solid var(--line); border-radius:12px; background:var(--card); color:var(--text); padding:20px; max-width:620px; width:calc(100% - 32px); }
+  dialog::backdrop { background:rgba(0,0,0,.45); }
+  dialog h2 { font-size:18px; }
+  dialog p, dialog li { color:var(--text); }
+  dialog ul { padding-left:20px; }
+  dialog .buttons { display:flex; justify-content:flex-end; gap:8px; margin-top:16px; }
+  kbd { font:12px ui-monospace, Consolas, monospace; border:1px solid var(--line); border-bottom-width:2px; border-radius:4px; padding:0 5px; background:var(--row); }
+  .heart { color:var(--accent); }
+  a { color:var(--accent); }
+  #toast { position:fixed; left:50%; bottom:44px; transform:translateX(-50%); background:var(--text); color:var(--bg); padding:8px 14px; border-radius:8px; font-size:13.5px; max-width:90vw; opacity:0; transition:opacity .2s; pointer-events:none; }
+  #toast.show { opacity:1; }
+  @media (max-width:700px) { #tabs { max-height:170px; } header h1 { font-size:15px; } }
+</style>
+</head>
+<body>
+<header>
+  <img src="assets/icons/icon-192.png" alt="">
+  <h1>KUDUNOTES</h1>
+  <input id="name" aria-label="The piece's name" hidden>
+  <span class="grow"></span>
+  <button id="toHome" hidden>All pieces</button>
+  <button id="saveFile" hidden title="One file with the notes, your corrections and the recording, to keep or open on another device">Save project file</button>
+  <button id="saveMidi" hidden title="The notes as a MIDI file, for other music programs">MIDI</button>
+  <button id="saveTabs" hidden title="The guitar tabs as a text file">Tabs as text</button>
+  <button id="help">Help</button>
+  <button id="about">About</button>
+</header>
+
+<main>
+  <section id="home">
+    <div class="wrap">
+      <p class="lead">KUDUNOTES listens to a recording and writes out its notes, as a piano roll and as guitar tabs. Play them back, slow them down, and put right what it misheard.</p>
+      <div class="card first">
+        <div class="starts">
+          <label class="filebutton main-file"><input type="file" id="pickSound" accept="audio/*,video/*,.mp3,.wav,.m4a,.aac,.ogg,.oga,.opus,.flac,.mp4,.mov,.webm,.mkv">Open a sound file…</label>
+          <button id="startRecord">Record with the microphone</button>
+          <label class="filebutton"><input type="file" id="pickProject" accept=".kudunotes">Open a project file…</label>
+        </div>
+        <p class="hint">Or drop a file anywhere on this page. It works best with one or two instruments playing, such as a piano alone or a guitar alone. Everything happens on this device: your recordings are never sent anywhere.</p>
+      </div>
+      <div class="card" id="saved" hidden>
+        <h2>Your pieces</h2>
+        <div id="pieces"></div>
+        <p class="hint">Kept in this browser, on this device. To move a piece to another device, open it and choose “Save project file”.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="busy" hidden style="display:flex">
+    <div class="centre">
+      <h2 id="busyTitle">Listening…</h2>
+      <progress id="busyBar" max="1" value="0"></progress>
+      <p class="hint" id="busyHint">Finding the notes. A long recording takes a while; you can leave this tab open and do something else.</p>
+    </div>
+  </section>
+
+  <section id="record" hidden style="display:flex">
+    <div class="centre">
+      <h2>Recording</h2>
+      <div id="clock">0:00</div>
+      <div id="level"><i></i></div>
+      <p class="hint">Play close to the microphone, in a quiet room. Press Stop when you've finished.</p>
+      <p><button class="main" id="stopRecord">Stop and find the notes</button> <button id="cancelRecord">Cancel</button></p>
+    </div>
+  </section>
+
+  <section id="editor" hidden style="display:flex; flex-direction:column; flex:1; min-height:0">
+    <div class="bar">
+      <button class="main" id="play" title="Space">▶ Play</button>
+      <span id="time">0:00 / 0:00</span>
+      <label>Speed <select id="speed"><option value="0.25">25%</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1" selected>100%</option><option value="1.25">125%</option></select></label>
+      <span class="sep"></span>
+      <label id="mixBox">Recording <input type="range" id="mix" min="0" max="1" step="0.05" value="0.5" aria-label="How much of the recording and how much of the notes you hear"> Notes</label>
+      <label class="filebutton" id="addSoundBox" hidden title="This piece's recording isn't kept here. Open it again to hear it with the notes."><input type="file" id="addSound" accept="audio/*,video/*">Open the recording again…</label>
+      <label>Sound <select id="voice"><option value="piano">Piano</option><option value="guitar">Guitar</option></select></label>
+      <span class="sep"></span>
+      <button id="clearLoop" disabled title="Drag along the time ruler to repeat a part">Stop repeating</button>
+      <span class="grow"></span>
+      <button id="zoomOut" title="Show more time (−)">−</button>
+      <button id="zoomIn" title="Show less time, bigger (+)">+</button>
+    </div>
+    <div class="bar">
+      <button id="undo" title="Ctrl+Z">Undo</button>
+      <button id="redo" title="Ctrl+Y">Redo</button>
+      <button id="delete" title="Delete">Delete</button>
+      <span class="sep"></span>
+      <label title="Hides notes the app wasn't sure it heard. Move it left to bring them back.">Faint notes <input type="range" id="least" min="0.2" max="0.95" step="0.01" value="0.7"> <span id="count"></span></label>
+      <span class="sep"></span>
+      <label>Guitar <select id="tuning"></select></label>
+      <label>Capo <input type="number" id="capo" min="0" max="12" value="0"></label>
+      <label title="The tabs won't go above this fret">Up to fret <input type="number" id="highest" min="3" max="24" value="15"></label>
+      <button id="stringUp" disabled title="Play the chosen note on the next higher string ( ] )">String ↑</button>
+      <button id="stringDown" disabled title="Play the chosen note on the next lower string ( [ )">String ↓</button>
+    </div>
+    <div id="views">
+      <canvas id="roll" aria-label="Piano roll: the notes as bars beside a keyboard"></canvas>
+      <div class="label"><span>Guitar tabs</span><span id="tabNote"></span></div>
+      <canvas id="tabs" aria-label="Guitar tabs"></canvas>
+    </div>
+    <div id="status"></div>
+  </section>
+</main>
+
+<dialog id="helpBox">
+  <h2>How to use KUDUNOTES</h2>
+  <ul>
+    <li><b>Start</b> by opening a sound file (MP3, WAV, M4A, or a video), or by recording with the microphone. KUDUNOTES listens and shows the notes.</li>
+    <li><b>The piano roll</b> (top) shows each note as a bar beside a keyboard: higher notes are higher up, time runs left to right. <b>The tabs</b> (bottom) show the same notes on six guitar strings as fret numbers.</li>
+    <li><b>Play</b> with the button or <kbd>Space</kbd>. Click the time ruler to jump. Drag along the ruler to repeat a part. Slow it down with Speed; the pitch stays the same.</li>
+    <li><b>Recording / Notes</b> mixes what you hear: all the way left is the recording only, right is the app's notes only. Listening to both is the quickest way to hear a wrong note.</li>
+    <li><b>Faint notes</b> hides notes the app wasn't sure about. If real notes are missing, move it left; if there are too many extra notes, move it right.</li>
+    <li><b>Correcting:</b> click a note to choose it (<kbd>Shift</kbd>+click or drag a box for several). Drag it to move it, drag its right end to make it longer or shorter, press <kbd>Delete</kbd> to remove it. Double-click an empty place to add a note. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes, <kbd>Ctrl</kbd>+<kbd>Y</kbd> redoes. Arrow keys nudge the chosen notes.</li>
+    <li><b>Guitar:</b> choose the tuning, a capo and the highest fret to use. To play a note on another string, choose it and press String ↑ or String ↓ (<kbd>]</kbd> and <kbd>[</kbd>).</li>
+    <li><b>Keeping your work:</b> pieces are saved in this browser by themselves. “Save project file” makes one file you can open on another device. “MIDI” and “Tabs as text” are for other programs and for sharing.</li>
+    <li><b>Scrolling:</b> the mouse wheel moves through time; <kbd>Ctrl</kbd>+wheel (or <kbd>+</kbd> and <kbd>−</kbd>) zooms.</li>
+  </ul>
+  <p class="hint">It hears one instrument best. With two instruments, or chords with many notes, expect to correct more. Singing and drums confuse it.</p>
+  <div class="buttons"><button class="main" data-close>Close</button></div>
+</dialog>
+
+<dialog id="aboutBox">
+  <h2>KUDUNOTES <span id="version" style="font-weight:400; color:var(--subtle); font-size:14px"></span></h2>
+  <p>Listens to music and writes out its notes for piano and guitar.</p>
+  <p>Made by Azeem, with Claude and <span class="heart" aria-label="love">♥</span></p>
+  <p>Free and open source (MIT). Everything happens on your own device: your recordings and pieces are never sent anywhere, and the app works without the internet once it has been opened.</p>
+  <p>The listening is done by Basic Pitch, made by Spotify's Audio Intelligence Lab (Apache License 2.0), running on TensorFlow.js (Apache License 2.0). See <a href="THIRD-PARTY-NOTICES.txt">THIRD-PARTY-NOTICES.txt</a>.</p>
+  <div class="buttons"><button class="main" data-close>Close</button></div>
+</dialog>
+
+<dialog id="askBox">
+  <p id="askText"></p>
+  <div class="buttons"><button id="askNo">Cancel</button><button class="main" id="askYes">OK</button></div>
+</dialog>
+
+<div id="toast" role="status"></div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
