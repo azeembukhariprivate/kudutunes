@@ -1,7 +1,7 @@
 # KUDUTUNES with Caddy, which gets and renews the HTTPS certificate by itself.
 # Change the address on the first line to your own, and the folder if you put the app elsewhere.
 notes.example.com {
-	root * /var/www/kudunotes
+	root * /var/www/kudutunes
 	file_server
 	encode gzip zstd
 

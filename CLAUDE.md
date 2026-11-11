@@ -3,8 +3,9 @@
 Listens to music and writes out its notes for piano and guitar: a free web app. Open a sound file or record, and
 get a piano roll and guitar tabs to play back, slow down, correct and save. Everything happens in the browser.
 Part of the KUDU family of free, open-source (MIT) apps by Azeem Bukhari.
-It was first called KUDUNOTES: the GitHub repository, the server folder (`/var/www/kudunotes`) and the address on
-Azeem's server (`azeembukhari.com/kudunotes/`) still carry that name, and so does the browser's store of pieces.
+It was first called KUDUNOTES. On Azeem's server the folder (`/var/www/kudunotes`) and the address
+(`azeembukhari.com/kudunotes/`) still carry that name, and so does the browser's store of pieces. INSTALL.md and
+`deploy/` use `/var/www/kudutunes` for new installs.
 
 ## Working with Azeem (the owner)
 

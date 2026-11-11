@@ -17,7 +17,7 @@ In every command below, replace `notes.example.com` with your own address.
 
 ```
 sudo apt update && sudo apt install -y git
-sudo git clone https://github.com/azeembukhariprivate/kudunotes /var/www/kudunotes
+sudo git clone https://github.com/azeembukhariprivate/kudutunes /var/www/kudutunes
 ```
 
 ## 2. Hand them out over https
@@ -29,7 +29,7 @@ itself). Use **B** if nginx is already running other sites on it.
 
 ```
 sudo apt install -y caddy
-sudo cp /var/www/kudunotes/deploy/Caddyfile /etc/caddy/Caddyfile
+sudo cp /var/www/kudutunes/deploy/Caddyfile /etc/caddy/Caddyfile
 sudo sed -i 's/notes.example.com/YOUR.ADDRESS.HERE/' /etc/caddy/Caddyfile
 sudo systemctl reload caddy
 ```
@@ -41,7 +41,7 @@ If Caddy already serves other sites, add the block from `deploy/Caddyfile` to yo
 
 ```
 sudo apt install -y nginx certbot python3-certbot-nginx
-sudo cp /var/www/kudunotes/deploy/nginx.conf /etc/nginx/sites-available/kudutunes
+sudo cp /var/www/kudutunes/deploy/nginx.conf /etc/nginx/sites-available/kudutunes
 sudo sed -i 's/notes.example.com/YOUR.ADDRESS.HERE/' /etc/nginx/sites-available/kudutunes
 sudo ln -s /etc/nginx/sites-available/kudutunes /etc/nginx/sites-enabled/kudutunes
 sudo nginx -t && sudo systemctl reload nginx
@@ -70,7 +70,7 @@ Open `https://YOUR.ADDRESS.HERE/` in a browser.
 ## Updating to a new version
 
 ```
-cd /var/www/kudunotes && sudo git pull
+cd /var/www/kudutunes && sudo git pull
 ```
 
 Nothing needs restarting. People who have the app open get the new version the next time they open it (the app keeps
@@ -79,7 +79,7 @@ a copy of itself for working offline, and replaces it when the version number ch
 ## Removing it
 
 ```
-sudo rm -rf /var/www/kudunotes
+sudo rm -rf /var/www/kudutunes
 ```
 
 and take its block out of the Caddyfile, or delete `/etc/nginx/sites-enabled/kudutunes` and
