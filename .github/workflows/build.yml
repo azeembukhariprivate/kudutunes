@@ -18,7 +18,8 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Ubuntu 24.04: the Playwright used by the browser test supports it (not yet the newer image "latest" points at).
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
