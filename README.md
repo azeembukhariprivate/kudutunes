@@ -20,6 +20,15 @@
   microphone. It finds the notes, including several sounding at once.
 - **Shows them two ways, in step**: a **piano roll** (a bar for each note beside a keyboard, coloured by note name)
   and **guitar tabs** (six strings with fret numbers) on the same time line.
+- **Sheet music**: the notes on a treble and a bass staff, scrolling with the piano roll. KUDUTUNES finds the beat
+  (following a player who speeds up or slows down), the bars and the key by itself, and writes each note as a
+  quarter, an eighth and so on, with rests, ties, and sharps or flats. If the bars look wrong, set the tempo (or halve
+  or double it), the beats in a bar or the key by hand. **Sheet music** saves it as a MusicXML file for notation
+  programs such as MuseScore, to print it or work on it there. The notes themselves aren't changed, only how they're
+  written.
+- **Two instruments**: a dividing line you drag in the piano roll keeps the notes of two instruments apart (and with
+  one instrument, splits the treble and bass staves). Move a single note across with **Other part**. Each instrument
+  gets its own staff and its own MIDI track, and can be heard on its own or put in the tabs alone.
 - **Plays them back**: the notes in the app's own piano or guitar sound, the recording, or both mixed together,
   which is the quickest way to hear a wrong note. Slow it down without changing the pitch, repeat a part by dragging
   along the time ruler, click anywhere to jump.
@@ -29,8 +38,8 @@
   It chooses strings and frets that keep the hand in one place and every chord within reach, and you can move any
   note to another string.
 - **Keeps your work**: pieces are saved in your browser by themselves. **Save project file** makes one file (notes,
-  corrections and the recording) to open on another device. **MIDI** and **Tabs as text** are for other music
-  programs and for sharing.
+  corrections and the recording) to open on another device. **MIDI**, **Tabs as text** and **Sheet music**
+  (MusicXML) are for other music programs and for sharing.
 - **Private**: the listening happens in your browser. Your recordings and pieces are never sent anywhere, and the
   app works without the internet once it has been opened.
 

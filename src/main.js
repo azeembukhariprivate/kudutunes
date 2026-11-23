@@ -4,12 +4,16 @@ import { tidy } from './tidy.js';
 import { Piece, DEFAULTS } from './piece.js';
 import { Player } from './player.js';
 import { TimeLine, Roll, Tabs, SIDE } from './view.js';
+import { Sheet } from './sheet.js';
+import { buildScore, partOf } from './score.js';
+import { musicXml } from './musicxml.js';
+import { KEYS } from './beat.js';
 import { TUNINGS, arrange, tabText, noteName, range, otherStrings, setup } from './guitar.js';
 import { midiFile } from './midi.js';
 import { pack, unpack } from './project.js';
 import * as store from './store.js';
 
-export const VERSION = '1.1.1';
+export const VERSION = '1.2.0';
 
 const $ = id => document.getElementById(id);
 const testing = new URLSearchParams(location.search).has('test');
@@ -20,6 +24,7 @@ const app = {
   line: new TimeLine(),
   selected: new Set(),
   placed: new Map(),
+  score: null,     // the sheet music (score.js), made when it's shown or saved; null when the notes have changed since
   sound: null, // { blob, name }: the recording being played along
   player: null,
   select(ids, add) {
@@ -29,10 +34,20 @@ const app = {
   },
   seek(t) { app.player.seek(t); },
   loop(l) { app.player.setLoop(l); $('clearLoop').disabled = !app.player.loop; if (app.player.loop) app.player.seek(app.player.loop.from); },
-  redraw() { wantDraw(); }
+  redraw() { wantDraw(); },
+  // The dividing line between the two parts: shown with two instruments, and with the sheet music (it splits the staves).
+  showSplit() { return !!app.piece.settings.parts || app.piece.settings.bottom === 'sheet'; },
+  setSplit(p) { changeSetting('split', p); },
+  /** The notes played: with two instruments, only the one chosen to hear. */
+  heard() { const s = app.piece.settings; return s.parts && s.hear !== 'both' ? app.piece.inPart(s.hear) : app.piece.shown; },
+  /** The sheet music, made again only when the notes or its settings changed. */
+  sheet() {
+    if (!app.score) app.score = buildScore(app.piece.shown, app.piece.settings, app.piece.length);
+    return app.score;
+  }
 };
-app.player = new Player(() => app.piece.shown);
-const roll = new Roll($('roll'), app), tabs = new Tabs($('tabs'), app);
+app.player = new Player(() => app.heard());
+const roll = new Roll($('roll'), app), tabs = new Tabs($('tabs'), app), sheet = new Sheet($('sheet'), app);
 
 // ------------------------------------------------------------------ drawing
 
@@ -44,7 +59,8 @@ function wantDraw() {
     drawing = false;
     if ($('editor').hidden) return;
     roll.draw();
-    tabs.draw(app.placed);
+    if (app.piece.settings.bottom === 'sheet') sheet.draw(app.sheet());
+    else tabs.draw(app.placed);
   });
 }
 addEventListener('resize', wantDraw);
@@ -53,7 +69,7 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', wantDraw);
 function show(name) {
   for (const s of screens) $(s).hidden = s !== name;
   const editing = name === 'editor';
-  for (const id of ['name', 'toHome', 'saveFile', 'saveMidi', 'saveTabs']) $(id).hidden = !editing;
+  for (const id of ['name', 'toHome', 'saveFile', 'saveMidi', 'saveTabs', 'saveSheet']) $(id).hidden = !editing;
   if (editing) wantDraw();
 }
 
@@ -84,13 +100,17 @@ const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(
 /** Works out the guitar places again and brings every control up to date (after any change to the notes). */
 function refresh() {
   const shown = app.piece.shown, s = app.piece.settings;
-  const places = arrange(shown, s);
+  // With two instruments the tabs can be for one of them.
+  const forTabs = s.parts && s.tabsFor !== 'both' ? app.piece.inPart(s.tabsFor) : shown;
+  const places = arrange(forTabs, s);
   app.placed = new Map();
-  shown.forEach((n, i) => { if (places[i]) app.placed.set(n.id, places[i]); });
+  forTabs.forEach((n, i) => { if (places[i]) app.placed.set(n.id, places[i]); });
+  app.score = null;
+  showParts();
   for (const id of [...app.selected]) if (!shown.some(n => n.id === id)) app.selected.delete(id);
   app.player.length = app.piece.length;
 
-  const cant = shown.length - app.placed.size, [low, high] = range(s);
+  const cant = forTabs.length - app.placed.size, [low, high] = range(s);
   $('tabNote').textContent = cant > 0 ? `${cant} ${cant === 1 ? 'note is' : 'notes are'} outside what the guitar can play as set up (${noteName(low)} to ${noteName(high)}), or too many at once` : '';
   $('count').textContent = `${shown.length} of ${app.piece.notes.length} notes`;
   $('undo').disabled = app.piece.undone.length === 0;
@@ -100,15 +120,40 @@ function refresh() {
   wantDraw();
 }
 
+/** The two-instrument and sheet music controls, as the piece is set now. */
+function showParts() {
+  const s = app.piece.settings, sheetShown = s.bottom === 'sheet';
+  $('parts').checked = !!s.parts;
+  $('hearBox').hidden = $('tabsForBox').hidden = !s.parts;
+  $('hear').value = String(s.hear ?? 'both');
+  $('tabsFor').value = String(s.tabsFor ?? 'both');
+  for (const el of document.querySelectorAll('.sheetOnly')) el.hidden = !sheetShown;
+  $('tabs').hidden = sheetShown;
+  $('sheet').hidden = !sheetShown;
+  $('showTabs').setAttribute('aria-pressed', String(!sheetShown));
+  $('showSheet').setAttribute('aria-pressed', String(sheetShown));
+  if (sheetShown) {
+    const score = app.sheet();
+    $('bpm').value = String(score.bpm);
+    $('meter').value = s.meter ? String(s.meter) : '';
+    $('key').value = s.key == null ? '' : String(s.key);
+    $('meter').options[0].text = `Find (${score.found.meter})`;
+    $('key').options[0].text = `Find (${score.found.keyName})`;
+    $('tabNote').textContent = '';
+  }
+}
+
 function showSelection() {
   const ids = [...app.selected], one = ids.length === 1 ? app.piece.notes.find(n => n.id === ids[0]) : null;
   $('delete').disabled = ids.length === 0;
+  $('otherPart').disabled = ids.length === 0 || !app.piece.settings.parts;
   const place = one && app.placed.get(one.id), strings = one ? otherStrings(one, app.piece.settings) : [];
   $('stringUp').disabled = !place || !strings.some(st => st > place.string);
   $('stringDown').disabled = !place || !strings.some(st => st < place.string);
   if (one) {
     const where = place ? `string ${6 - place.string}, fret ${place.fret}` : "the guitar can't play it as set up";
-    status(`${noteName(one.p)} at ${one.t.toFixed(2)} s, ${one.d.toFixed(2)} s long · guitar: ${where}`);
+    const part = app.piece.settings.parts ? ` · instrument ${partOf(one, app.piece.settings)}` : '';
+    status(`${noteName(one.p)} at ${one.t.toFixed(2)} s, ${one.d.toFixed(2)} s long · guitar: ${where}${part}`);
   } else if (ids.length > 1) status(`${ids.length} notes chosen. Drag to move them, Delete to remove them.`);
   else status(app.piece.notes.length === 0 ? 'No notes were found. Double-click in the piano roll to add one.' : 'Click a note to choose it. Double-click an empty place to add one. Drag along the time ruler to repeat a part.');
   wantDraw();
@@ -403,11 +448,36 @@ function wire() {
 
   $('name').onchange = () => { app.piece.name = $('name').value.trim() || 'Untitled'; $('name').value = app.piece.name; saveSoon(); };
   $('saveFile').onclick = saveProjectFile;
-  $('saveMidi').onclick = () => download(midiFile(app.piece.shown, app.piece.name), fileName() + '.mid', 'audio/midi');
-  $('saveTabs').onclick = () => {
-    const shown = app.piece.shown;
-    download(tabText(shown, shown.map(n => app.placed.get(n.id) || null), app.piece.settings, app.piece.name), fileName() + ' (tabs).txt', 'text/plain;charset=utf-8');
+  $('saveMidi').onclick = () => {
+    const s = app.piece.settings;
+    download(midiFile(app.piece.shown, app.piece.name, s.parts ? n => partOf(n, s) : null), fileName() + '.mid', 'audio/midi');
   };
+  $('saveTabs').onclick = () => {
+    const s = app.piece.settings, notes = s.parts && s.tabsFor !== 'both' ? app.piece.inPart(s.tabsFor) : app.piece.shown;
+    download(tabText(notes, notes.map(n => app.placed.get(n.id) || null), s, app.piece.name), fileName() + ' (tabs).txt', 'text/plain;charset=utf-8');
+  };
+  $('saveSheet').onclick = () => {
+    download(musicXml(app.sheet(), app.piece.name, !!app.piece.settings.parts), fileName() + '.musicxml', 'application/vnd.recordare.musicxml+xml');
+    toast('Saved as MusicXML. Open it in a notation program such as MuseScore to print it or change it.', 5);
+  };
+
+  // Two instruments and the sheet music.
+  for (const k of KEYS) $('key').add(new Option(k.name, String(k.fifths)));
+  $('parts').onchange = () => changeSetting('parts', $('parts').checked);
+  $('hear').onchange = () => { changeSetting('hear', $('hear').value === 'both' ? 'both' : Number($('hear').value), false); app.player.requeue(); };
+  $('tabsFor').onchange = () => changeSetting('tabsFor', $('tabsFor').value === 'both' ? 'both' : Number($('tabsFor').value));
+  $('otherPart').onclick = () => app.piece.toOtherPart([...app.selected]);
+  $('showTabs').onclick = () => changeSetting('bottom', 'tabs');
+  $('showSheet').onclick = () => changeSetting('bottom', 'sheet');
+  $('bpm').onchange = () => {
+    const v = Math.round(Number($('bpm').value));
+    changeSetting('bpm', v >= 30 && v <= 300 ? v : null);
+  };
+  $('halfTempo').onclick = () => changeSetting('bpm', Math.max(30, Math.round(app.sheet().bpm / 2)));
+  $('doubleTempo').onclick = () => changeSetting('bpm', Math.min(300, Math.round(app.sheet().bpm * 2)));
+  $('meter').onchange = () => changeSetting('meter', $('meter').value ? Number($('meter').value) : null);
+  $('key').onchange = () => changeSetting('key', $('key').value === '' ? null : Number($('key').value));
+  $('findAgain').onclick = () => { for (const k of ['bpm', 'meter', 'key']) app.piece.settings[k] = null; refresh(); saveSoon(); };
 
   $('play').onclick = () => app.player.toggle();
   $('speed').onchange = () => { app.player.setSpeed(Number($('speed').value)); changeSetting('speed', Number($('speed').value), false); };
@@ -455,6 +525,7 @@ function wire() {
     else if (e.code === 'ArrowLeft') { if (!nudge(e.shiftKey ? -0.1 : -0.02, 0)) app.seek(app.player.time - (e.shiftKey ? 5 : 1)); }
     else if (e.code === 'ArrowRight') { if (!nudge(e.shiftKey ? 0.1 : 0.02, 0)) app.seek(app.player.time + (e.shiftKey ? 5 : 1)); }
     else if (e.code === 'Home') app.seek(0);
+    else if (e.code === 'KeyP' && !ctrl) { if (app.piece.settings.parts && app.selected.size) app.piece.toOtherPart([...app.selected]); }
     else if (e.code === 'BracketRight') moveString(1);
     else if (e.code === 'BracketLeft') moveString(-1);
     else if (e.key === '+' || e.key === '=') zoom(1.25);
@@ -482,9 +553,9 @@ if ('serviceWorker' in navigator && !testing && (location.protocol === 'https:' 
 
 if (testing) {
   // For the browser test: the app's insides, and a way in for sound made by the test.
-  window.__views = { roll, tabs };
+  window.__views = { roll, tabs, sheet };
   window.kudutunes = {
-    app, store, DEFAULTS, RATE,
+    app, store, DEFAULTS, RATE, buildScore, musicXml,
     listen: (samples, name = 'Test') => listenTo(samples, samples.length / RATE, name, null),
     openSound, openProject, saveNow, showHome,
     state: () => ({ screen: screens.find(s => !$(s).hidden), notes: app.piece.notes.length, shown: app.piece.shown.length, placed: app.placed.size, selected: app.selected.size, time: app.player.time, playing: app.player.playing, id: app.piece.id })

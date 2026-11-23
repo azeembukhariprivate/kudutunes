@@ -88,6 +88,67 @@ try {
     await shot(page, '02-piano-tune');
   });
 
+  await step('sheet music: the beat, the bars and the key found, drawn, set by hand, saved as MusicXML', async () => {
+    await page.click('#showSheet');
+    await page.waitForFunction(() => !document.getElementById('sheet').hidden);
+    assert.ok(await page.isVisible('#bpm') && !(await page.isVisible('#tabs')), 'the sheet music shows instead of the tabs');
+    const score = await page.evaluate(() => { const s = kudutunes.app.sheet(); return { bpm: s.bpm, meter: s.meter, fifths: s.fifths, upper: s.staves[0].events.filter(e => !e.rest).map(e => [e.notes.map(n => n.p), e.len]), lower: s.staves[1].events.filter(e => !e.rest).length, bars: s.bars.length }; });
+    assert.ok(Math.abs(score.bpm - 120) <= 3, `the tune's tempo, 120 beats a minute: found ${score.bpm}`);
+    assert.equal(score.meter, 4);
+    assert.equal(score.fifths, 0, 'C major: no sharps or flats');
+    assert.deepEqual(score.upper.map(e => e[0][0]), MELODY.map(n => n.p), 'every note of the tune on the upper staff, in order');
+    assert.ok(score.upper.every(e => e[1] === 4), 'each written as a quarter note: ' + JSON.stringify(score.upper.map(e => e[1])));
+    assert.equal(score.lower, 0, 'nothing on the lower staff');
+    assert.equal(await page.inputValue('#bpm'), String(score.bpm));
+    await shot(page, '03-sheet-music');
+    // Set by hand, then found again.
+    await page.fill('#bpm', '60');
+    await page.press('#bpm', 'Enter');
+    await page.waitForFunction(() => kudutunes.app.sheet().bpm === 60);
+    assert.ok(await page.evaluate(() => kudutunes.app.sheet().staves[0].events.filter(e => !e.rest).every(e => e.len === 2)), 'at half the tempo, eighth notes');
+    await page.selectOption('#key', '2');
+    assert.equal(await page.evaluate(() => kudutunes.app.sheet().fifths), 2);
+    await page.click('#findAgain');
+    await page.waitForFunction(() => kudutunes.app.sheet().fifths === 0 && Math.abs(kudutunes.app.sheet().bpm - 120) <= 3);
+    // Saved for notation programs.
+    const [d] = await Promise.all([page.waitForEvent('download'), page.click('#saveSheet')]);
+    const xmlPath = out + 'files/' + d.suggestedFilename();
+    await d.saveAs(xmlPath);
+    const xml = readFileSync(xmlPath, 'utf8');
+    assert.ok(xmlPath.endsWith('Twinkle piano.musicxml') && xml.includes('<work-title>Twinkle piano</work-title>') && (xml.match(/<step>G<\/step>/g) || []).length === 3, 'the MusicXML file');
+  });
+
+  await step('two instruments: the dividing line, one note moved across, heard alone', async () => {
+    await page.check('#parts');
+    assert.ok(await page.isVisible('#hearBox') && await page.isVisible('#tabsForBox'));
+    const before = await page.evaluate(() => kudutunes.app.piece.inPart(2).length);
+    assert.equal(before, 0, 'every note above middle C: the first instrument');
+    // Drag the dashed line up above G (67): the notes below it are the second instrument.
+    const box = await page.locator('#roll').boundingBox();
+    const yOf = await page.evaluate(() => { const r = window.__views.roll; return [r.splitY(kudutunes.app.piece.settings.split), r.splitY(68)]; });
+    await page.mouse.move(box.x + 400, box.y + yOf[0]);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 400, box.y + yOf[1], { steps: 6 });
+    await page.mouse.up();
+    await page.waitForFunction(() => kudutunes.app.piece.settings.split === 68);
+    const lower = await page.evaluate(() => kudutunes.app.piece.inPart(2).map(n => n.p));
+    assert.ok(lower.length > 0 && lower.every(p => p < 68), 'the notes under the line: ' + lower);
+    // One note moved across with P.
+    const one = await page.evaluate(() => kudutunes.app.piece.inPart(1)[0].id);
+    await page.evaluate(id => kudutunes.app.select([id], false), one);
+    await page.keyboard.press('KeyP');
+    assert.ok(await page.evaluate(id => kudutunes.app.piece.inPart(2).some(n => n.id === id), one), 'moved to the second instrument');
+    await page.selectOption('#hear', '1');
+    assert.ok(await page.evaluate(() => kudutunes.app.heard().every(n => n.p >= 68)), 'only the first instrument is heard');
+    await page.selectOption('#hear', 'both');
+    await shot(page, '03b-two-instruments');
+    // Back as it was, for the next steps.
+    await page.keyboard.press('Control+z');
+    await page.uncheck('#parts');
+    await page.click('#showTabs');
+    await page.waitForFunction(() => !document.getElementById('tabs').hidden);
+  });
+
   await step('playing: the notes and the recording together, slower, a repeated part, a jump', async () => {
     assert.ok(await page.isVisible('#mixBox'), 'the recording is there to mix in');
     await page.click('#play');

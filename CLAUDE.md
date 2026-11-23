@@ -34,8 +34,8 @@ It was first called KUDUNOTES. On Azeem's server the folder (`/var/www/kudunotes
 - Guitar: standard, Drop D, half a step down, open G, DADGAD; a capo; the highest fret. No bass or ukulele.
 - Installed on Azeem's own server (INSTALL.md); nothing is published from GitHub.
 
-Ideas left for later: sheet music, a split between two instruments (a dividing line you set), tidying timing to a
-beat, moving to another key, live listening, printing.
+Added in 1.2: sheet music and a split between two instruments. Ideas left for later: tidying the notes' own timing to
+the beat, moving to another key, live listening, printing (MusicXML can be printed from a notation program).
 
 ## How the app is built
 
@@ -59,6 +59,16 @@ beat, moving to another key, live listening, printing.
 - **Keeping** (`src/store.js`): IndexedDB `kudunotes` (the app's first name, kept so
   earlier pieces stay): `pieces` and `sounds` (recordings up to 80 MB). `src/project.js` is the `.kudutunes` file (it
   also opens `.kudunotes` files saved before the rename); `src/midi.js` writes MIDI.
+- **Sheet music** (1.2): `src/beat.js` finds the beat (an onset-strength line every 10 ms; the usual step between beats
+  that fits the note starts, preferring walking pace, then halved when every other beat is often empty; each beat
+  placed by dynamic programming so a player who speeds up is followed), the bars (`findBars`: 4 unless 3 is clearly
+  stronger) and the key (`findKey`, Krumhansl-Kessler). `src/score.js` writes the notes into bars on two staves
+  (`buildScore`: 4 steps a beat, chords, ties over bar lines, rests, a gap of one step after a longer note counts as
+  the note, accidentals per bar) without changing them; `src/sheet.js` draws it on the shared `TimeLine`;
+  `src/musicxml.js` saves it. Tempo, beats in a bar and key can be set by hand (`settings.bpm`, `meter`, `key`; null:
+  found). **Two instruments**: `settings.split` (the dividing line; middle C) and `settings.parts`; `n.part` (1 or 2)
+  is a note moved across by hand (`partOf`, `Piece.toOtherPart`). The line is dragged in the roll; parts go to the
+  staves, MIDI tracks (`midiFile(notes, title, partOf)`), what is heard (`settings.hear`) and the tabs (`tabsFor`).
 - `src/main.js`: the screens, buttons and keys. `?test` adds `window.kudutunes` for the browser test.
 - Works offline: `sw.js` lists every file (`node tools/list_files.mjs` writes the list); its `VERSION` must match
   `package.json` and `src/main.js` (a test checks).

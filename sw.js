@@ -1,6 +1,6 @@
 // Keeps a copy of the app on the device, so it opens without the internet. A new version (VERSION below, the same
 // as in package.json and src/main.js) fetches everything afresh.
-const VERSION = '1.1.1';
+const VERSION = '1.2.0';
 const CACHE = 'kudutunes-' + VERSION;
 const FILES = [
   './',
@@ -11,13 +11,17 @@ const FILES = [
   'assets/icons/maskable-512.png',
   'index.html',
   'manifest.webmanifest',
+  'src/beat.js',
   'src/guitar.js',
   'src/listen.js',
   'src/main.js',
   'src/midi.js',
+  'src/musicxml.js',
   'src/piece.js',
   'src/player.js',
   'src/project.js',
+  'src/score.js',
+  'src/sheet.js',
   'src/store.js',
   'src/synth.js',
   'src/tidy.js',

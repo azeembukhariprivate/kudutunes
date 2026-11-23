@@ -73,6 +73,10 @@
   #views { flex:1; min-height:0; display:flex; flex-direction:column; }
   #roll { flex:3; min-height:160px; width:100%; display:block; touch-action:none; }
   #tabs { flex:1; min-height:150px; max-height:210px; width:100%; display:block; border-top:1px solid var(--line); touch-action:none; }
+  #sheet { flex:1.6; min-height:210px; max-height:300px; width:100%; display:block; border-top:1px solid var(--line); touch-action:none; }
+  .label .pick { border:0; background:none; padding:0 2px; min-height:0; font-size:12px; color:var(--subtle); cursor:pointer; border-radius:0; }
+  .label .pick[aria-pressed="true"] { color:var(--text); font-weight:600; box-shadow:inset 0 -2px 0 var(--accent); }
+  .bar input[type=number] { width:58px; }
   .label { padding:3px 12px; font-size:12px; color:var(--subtle); background:var(--head); border-top:1px solid var(--line); border-bottom:1px solid var(--line); display:flex; gap:14px; }
   #status { padding:5px 12px; font-size:12.5px; color:var(--subtle); background:var(--card); border-top:1px solid var(--line); min-height:28px; }
 
@@ -100,6 +104,7 @@
   <button id="saveFile" hidden title="One file with the notes, your corrections and the recording, to keep or open on another device">Save project file</button>
   <button id="saveMidi" hidden title="The notes as a MIDI file, for other music programs">MIDI</button>
   <button id="saveTabs" hidden title="The guitar tabs as a text file">Tabs as text</button>
+  <button id="saveSheet" hidden title="The sheet music as a MusicXML file, for notation programs such as MuseScore">Sheet music</button>
   <button id="help">Help</button>
   <button id="about">About</button>
 </header>
@@ -170,10 +175,24 @@
       <button id="stringUp" disabled title="Play the chosen note on the next higher string ( ] )">String ↑</button>
       <button id="stringDown" disabled title="Play the chosen note on the next lower string ( [ )">String ↓</button>
     </div>
+    <div class="bar">
+      <label title="Two instruments: the notes above and below the dividing line (drag it in the piano roll) are kept apart"><input type="checkbox" id="parts"> Two instruments</label>
+      <button id="otherPart" disabled title="Move the chosen notes to the other part (P)">Other part</button>
+      <label id="hearBox" hidden>Hear <select id="hear"><option value="both">Both</option><option value="1">Instrument 1</option><option value="2">Instrument 2</option></select></label>
+      <label id="tabsForBox" hidden>Tabs for <select id="tabsFor"><option value="both">Both</option><option value="1">Instrument 1</option><option value="2">Instrument 2</option></select></label>
+      <span class="sep sheetOnly"></span>
+      <label class="sheetOnly" title="Beats a minute, found by itself; change it if the bars look wrong">Tempo <input type="number" id="bpm" min="30" max="300" step="1"></label>
+      <button class="sheetOnly" id="halfTempo" title="Half as many beats (each note written twice as short)">½</button>
+      <button class="sheetOnly" id="doubleTempo" title="Twice as many beats (each note written twice as long)">×2</button>
+      <label class="sheetOnly">Beats in a bar <select id="meter"><option value="">Find</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select></label>
+      <label class="sheetOnly">Key <select id="key"><option value="">Find</option></select></label>
+      <button class="sheetOnly" id="findAgain" title="Find the tempo, the bars and the key again by themselves">Find again</button>
+    </div>
     <div id="views">
       <canvas id="roll" aria-label="Piano roll: the notes as bars beside a keyboard"></canvas>
-      <div class="label"><span>Guitar tabs</span><span id="tabNote"></span></div>
+      <div class="label"><button class="pick" id="showTabs" aria-pressed="true">Guitar tabs</button><button class="pick" id="showSheet" aria-pressed="false">Sheet music</button><span id="tabNote"></span></div>
       <canvas id="tabs" aria-label="Guitar tabs"></canvas>
+      <canvas id="sheet" hidden aria-label="Sheet music"></canvas>
     </div>
     <div id="status"></div>
   </section>
@@ -188,11 +207,13 @@
     <li><b>Recording / Notes</b> mixes what you hear: all the way left is the recording only, right is the app's notes only. Listening to both is the quickest way to hear a wrong note.</li>
     <li><b>Faint notes</b> hides notes the app wasn't sure about. If real notes are missing, move it left; if there are too many extra notes, move it right.</li>
     <li><b>Correcting:</b> click a note to choose it (<kbd>Shift</kbd>+click or drag a box for several). Drag it to move it, drag its right end to make it longer or shorter, press <kbd>Delete</kbd> to remove it. Double-click an empty place to add a note. <kbd>Ctrl</kbd>+<kbd>Z</kbd> undoes, <kbd>Ctrl</kbd>+<kbd>Y</kbd> redoes. Arrow keys nudge the chosen notes.</li>
+    <li><b>Sheet music:</b> choose “Sheet music” under the piano roll. KUDUTUNES finds the beat, the bars and the key by itself; if the bars look wrong, change the tempo (or halve or double it), the beats in a bar or the key. The notes themselves aren't changed, only how they're written. “Sheet music” at the top saves it as a MusicXML file for notation programs such as MuseScore.</li>
+    <li><b>Two instruments:</b> tick “Two instruments” and drag the dashed line in the piano roll between them: notes above it are the first instrument, below it the second. To move a single note across, choose it and press Other part (<kbd>P</kbd>). Each instrument gets its own staff, its own MIDI track, and can be heard or put in the tabs alone. With one instrument, the same line splits the treble and bass staves.</li>
     <li><b>Guitar:</b> choose the tuning, a capo and the highest fret to use. To play a note on another string, choose it and press String ↑ or String ↓ (<kbd>]</kbd> and <kbd>[</kbd>).</li>
     <li><b>Keeping your work:</b> pieces are saved in this browser by themselves. “Save project file” makes one file you can open on another device. “MIDI” and “Tabs as text” are for other programs and for sharing.</li>
     <li><b>Scrolling:</b> the mouse wheel moves through time; <kbd>Ctrl</kbd>+wheel (or <kbd>+</kbd> and <kbd>−</kbd>) zooms.</li>
   </ul>
-  <p class="hint">It hears one instrument best. With two instruments, or chords with many notes, expect to correct more. Singing and drums confuse it.</p>
+  <p class="hint">It hears one instrument best. With two instruments, or chords with many notes, expect to correct more. Singing and drums confuse it. Sheet music from playing that speeds up and slows down a lot may need its tempo set by hand.</p>
   <div class="buttons"><button class="main" data-close>Close</button></div>
 </dialog>
 

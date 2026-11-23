@@ -1,10 +1,17 @@
 // A piece being worked on: its notes, what was changed by hand, and undo.
 import { shown, USUAL } from './tidy.js';
+import { partOf } from './score.js';
 
 let nextId = 1;
 const withIds = notes => notes.map(n => ({ ...n, id: n.id ?? nextId++ }));
 
-export const DEFAULTS = { least: USUAL, tuning: 'standard', capo: 0, highest: 15, voice: 'piano', speed: 1, mix: 0.5 };
+// split: the dividing line between the two parts (notes from this pitch up are in the upper part; middle C to begin
+// with); parts: two instruments rather than one piano; hear / tabsFor: 'both', 1 or 2; bpm, meter, key: the sheet
+// music's tempo, beats in a bar and key signature set by hand (null: found by itself); bottom: 'tabs' or 'sheet'.
+export const DEFAULTS = {
+  least: USUAL, tuning: 'standard', capo: 0, highest: 15, voice: 'piano', speed: 1, mix: 0.5,
+  split: 60, parts: false, hear: 'both', tabsFor: 'both', bpm: null, meter: null, key: null, bottom: 'tabs'
+};
 
 export class Piece {
   constructor({ id = null, name = 'Untitled', notes = [], settings = {}, duration = 0, created = Date.now() } = {}) {
@@ -80,6 +87,20 @@ export class Piece {
       if (dp !== 0) delete moved.g; // a new pitch: the string chosen by hand no longer applies
       return moved;
     }));
+  }
+
+  /** Moves notes to the other part (from the upper to the lower, or back), whatever side of the line they're on. */
+  toOtherPart(ids) {
+    const which = new Set(ids);
+    return this.edit(notes => notes.some(n => which.has(n.id))
+      ? notes.map(n => (which.has(n.id) ? { ...n, part: partOf(n, this.settings) === 1 ? 2 : 1 } : n))
+      : null);
+  }
+
+  /** The notes of one part (1 or 2), or all of them ('both'), from those shown. */
+  inPart(which) {
+    const all = this.shown;
+    return which === 1 || which === 2 || which === '1' || which === '2' ? all.filter(n => partOf(n, this.settings) === Number(which)) : all;
   }
 
   /** Puts a note on a guitar string chosen by hand (null: let the app choose again). */

@@ -1,6 +1,7 @@
 // The two pictures of a piece, drawn on the same time line so they scroll together: the piano roll (a bar for each
 // note beside a keyboard, to click, drag and stretch) and the guitar tabs (six strings with fret numbers).
 import { NAMES, TUNINGS, setup } from './guitar.js';
+import { partOf } from './score.js';
 
 export const SIDE = 56;   // the keyboard / string names down the left
 const RULER = 24;         // the time ruler along the top of the roll
@@ -22,14 +23,14 @@ export class TimeLine {
   }
 }
 
-function colours(el) {
+export function colours(el) {
   const c = getComputedStyle(el), v = n => c.getPropertyValue(n).trim();
   return { bg: v('--card'), alt: v('--row'), line: v('--line'), text: v('--text'), subtle: v('--subtle'), accent: v('--accent'), key: v('--key'), dark: v('--key-dark'), head: v('--head') };
 }
 const hue = p => `hsl(${(((p % 12) + 12) % 12) * 30 + 200}, 68%, 56%)`;
 const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 
-function fit(canvas) {
+export function fit(canvas) {
   const r = canvas.getBoundingClientRect(), k = window.devicePixelRatio || 1;
   const w = Math.max(50, Math.round(r.width)), h = Math.max(50, Math.round(r.height));
   if (canvas.width !== w * k || canvas.height !== h * k) { canvas.width = w * k; canvas.height = h * k; }
@@ -41,7 +42,8 @@ function fit(canvas) {
 export class Roll {
   /**
    * `app` gives: piece, player, line (TimeLine), selected (Set of note ids), and is told of what the person does:
-   * select(ids, add), changed(), seek(t), loop({from, to} | null), redraw().
+   * select(ids, add), changed(), seek(t), loop({from, to} | null), redraw(), and for the two parts: showSplit() (whether
+   * the dividing line is shown) and setSplit(pitch).
    */
   constructor(canvas, app) {
     this.canvas = canvas;
@@ -69,6 +71,10 @@ export class Roll {
   }
 
   y(p) { return RULER + (this.high - p) * this.row; }
+  /** Where the dividing line is drawn: under the row of `split` (that pitch and those above are the upper part). */
+  splitY(split) { return this.y(split) + this.row; }
+  /** The dividing line's pitch for a place on the screen. */
+  splitAt(y) { return Math.min(109, Math.max(21, Math.round(this.high + 1 - (y - RULER) / this.row))); }
   pitchAt(y) { return Math.round(this.high - (y - RULER) / this.row + 0.5); }
 
   /** A note as it's drawn now, with any drag in progress applied. */
@@ -128,17 +134,35 @@ export class Roll {
     g.save();
     g.beginPath(); g.rect(SIDE, RULER, w - SIDE, h - RULER); g.clip();
     const pad = this.row > 5 ? 1 : 0;
+    const split = this.app.showSplit ? this.app.showSplit() : false;
     for (const real of piece.shown) {
       const n = this.shownAs(real), x = line.x(n.t), wide = Math.max(3, n.d * line.pps);
       if (x + wide < SIDE || x > w || n.p < this.low || n.p > this.high) continue;
       const y = this.y(n.p) + pad, tall = Math.max(2, this.row - pad * 2), on = selected.has(real.id);
       g.fillStyle = hue(n.p);
-      g.globalAlpha = on ? 1 : 0.88;
+      const lower = split && partOf(real, piece.settings) === 2; // the lower part is drawn lighter
+      g.globalAlpha = on ? 1 : lower ? 0.42 : 0.88;
       round(g, x, y, wide, tall, Math.min(3, tall / 2)); g.fill();
       g.globalAlpha = 1;
+      if (lower && !on) { g.lineWidth = 1; g.strokeStyle = hue(n.p); round(g, x + 0.5, y + 0.5, wide - 1, tall - 1, Math.min(3, tall / 2)); g.stroke(); }
       if (on) { g.lineWidth = 2; g.strokeStyle = c.text; round(g, x, y, wide, tall, Math.min(3, tall / 2)); g.stroke(); }
       if (this.row >= 11 && wide > 22) { g.fillStyle = '#10151c'; g.font = `${Math.min(11, this.row - 2)}px system-ui, "Segoe UI", sans-serif`; g.fillText(NAMES[n.p % 12], x + 4, y + tall / 2 + 0.5); }
       this.boxes.push({ id: real.id, x, y: this.y(n.p), w: wide, h: this.row });
+    }
+    // The dividing line between the two parts (dragged up or down to move it).
+    if (split) {
+      const at = this.drag && this.drag.kind === 'split' ? this.drag.split : piece.settings.split ?? 60;
+      const ly = Math.round(this.splitY(at)) + 0.5;
+      g.strokeStyle = c.accent; g.lineWidth = 2; g.setLineDash([7, 4]);
+      g.beginPath(); g.moveTo(SIDE, ly); g.lineTo(w, ly); g.stroke();
+      g.setLineDash([]);
+      // Its label at the right end, clear of the notes at the start.
+      const label = piece.settings.parts ? '▲ Instrument 1   ▼ Instrument 2' : '▲ Upper staff   ▼ Lower staff';
+      g.font = '11px system-ui, "Segoe UI", sans-serif';
+      const lw = g.measureText(label).width + 10;
+      g.fillStyle = c.bg; g.globalAlpha = 0.85; g.fillRect(w - lw - 8, ly - 17, lw, 15); g.globalAlpha = 1;
+      g.fillStyle = c.accent;
+      g.fillText(label, w - lw - 3, ly - 9);
     }
     // The box being dragged round notes to pick them.
     if (this.drag && this.drag.kind === 'box' && this.drag.moved) {
@@ -193,6 +217,11 @@ export class Roll {
     }
     if (y < RULER) { this.drag = { kind: 'ruler', x0: x, from: Math.max(0, line.t(x)), to: Math.max(0, line.t(x)), moved: false }; return; }
     const box = this.noteAt(x, y);
+    if (!box && this.app.showSplit && this.app.showSplit() && Math.abs(y - this.splitY(piece.settings.split ?? 60)) <= 5) {
+      this.drag = { kind: 'split', x0: x, y0: y, split: piece.settings.split ?? 60, moved: false };
+      this.app.redraw();
+      return;
+    }
     if (box) {
       const more = e.shiftKey || e.ctrlKey || e.metaKey;
       if (!selected.has(box.id)) this.app.select([box.id], more);
@@ -209,7 +238,8 @@ export class Roll {
     const { x, y } = this.at(e), d = this.drag, { line } = this.app;
     if (!d) {
       const box = x > SIDE && y > RULER ? this.noteAt(x, y) : null;
-      this.canvas.style.cursor = box ? (box.w > 12 && x > box.x + box.w - 7 ? 'ew-resize' : 'grab') : y < RULER && x > SIDE ? 'pointer' : x < SIDE ? 'pointer' : 'default';
+      const onSplit = !box && this.app.showSplit && this.app.showSplit() && x > SIDE && Math.abs(y - this.splitY(this.app.piece.settings.split ?? 60)) <= 5;
+      this.canvas.style.cursor = onSplit ? 'ns-resize' : box ? (box.w > 12 && x > box.x + box.w - 7 ? 'ew-resize' : 'grab') : y < RULER && x > SIDE ? 'pointer' : x < SIDE ? 'pointer' : 'default';
       return;
     }
     if (Math.abs(x - d.x0) > 3 || (d.y0 != null && Math.abs(y - d.y0) > 3)) d.moved = true;
@@ -221,6 +251,7 @@ export class Roll {
       d.dp = dp;
     } else if (d.kind === 'stretch') d.dd = (x - d.x0) / line.pps;
     else if (d.kind === 'box') { d.x1 = x; d.y1 = y; }
+    else if (d.kind === 'split') d.split = this.splitAt(y);
     this.app.redraw();
   }
 
@@ -228,7 +259,9 @@ export class Roll {
     const d = this.drag, { piece, selected, line } = this.app;
     this.drag = null;
     if (!d) return;
-    if (d.kind === 'ruler') {
+    if (d.kind === 'split') {
+      if (d.moved && d.split !== piece.settings.split) this.app.setSplit(d.split);
+    } else if (d.kind === 'ruler') {
       if (d.moved) this.app.loop({ from: Math.min(d.from, d.to), to: Math.max(d.from, d.to) });
       else this.app.seek(d.from);
     } else if (d.kind === 'move' && d.moved && (Math.abs(d.dt) > 0.004 || d.dp !== 0)) {
