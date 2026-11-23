@@ -11,6 +11,7 @@ const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; ch
 
 export const RULES = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'";
 
+/** Serves the app from this folder on localhost, with the same safety rules as the real server. */
 export function serve(port = 8080) {
   const server = createServer(async (req, res) => {
     try {

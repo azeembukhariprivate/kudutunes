@@ -54,6 +54,7 @@ export function render(notes, sound, rate = RATE) {
   return out;
 }
 
+/** Notes one after another: the pitches given, a step apart, each `len` long. */
 const seq = (pitches, step, len, start = 0.3) => pitches.map((p, i) => ({ t: start + i * step, d: len, p }));
 
 /** A tune one note at a time: "Twinkle, twinkle" in C. */

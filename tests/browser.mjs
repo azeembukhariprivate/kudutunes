@@ -24,6 +24,7 @@ const watch = page => {
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 };
+/** Runs one step of the test, printing its name and how long it took, and fails if the page showed an error. */
 const step = async (name, fn) => {
   process.stdout.write(`- ${name} ... `);
   const t = Date.now();
@@ -31,6 +32,7 @@ const step = async (name, fn) => {
   assert.deepEqual(errors, [], 'no errors in the page');
   console.log(`ok (${((Date.now() - t) / 1000).toFixed(0)} s)`);
 };
+/** Keeps a picture of the page for people to look at. */
 const shot = (page, name) => page.screenshot({ path: out + name + '.png' });
 
 /** Sound as a WAV file, the way a person would have it. */
@@ -51,8 +53,11 @@ writeFileSync(files + 'Chords piano.wav', wav(render(CHORDS, strike)));
 try {
   const page = await browser.newPage({ viewport: { width: 1360, height: 800 }, acceptDownloads: true });
   watch(page);
+  /** What's on the screen, from the app's test hook. */
   const state = () => page.evaluate(() => kudutunes.state());
+  /** The notes shown now, each with its start, length, pitch and id. */
   const shown = () => page.evaluate(() => kudutunes.app.piece.shown.map(n => ({ t: n.t, d: n.d, p: n.p, id: n.id })));
+  /** Waits until the working screen shows (listening can take a while on a computer without a graphics card). */
   const inEditor = () => page.waitForFunction(() => kudutunes.state().screen === 'editor', null, { timeout: 600000 });
   /** Opens a sound file and waits for the new piece (not the one already on the screen). */
   const open = async file => {
@@ -312,6 +317,7 @@ try {
   let project;
   await step('files out: MIDI, tabs as text and a project file with the recording inside', async () => {
     const want = await shown();
+    /** Clicks a save button and keeps the file the browser is given. Returns where it was kept. */
     const save = async button => { const [d] = await Promise.all([page.waitForEvent('download'), page.click(button)]); const path = out + 'files/' + d.suggestedFilename(); await d.saveAs(path); return path; };
     const midi = await save('#saveMidi');
     assert.ok(midi.endsWith('Picking guitar.mid'));

@@ -14,6 +14,7 @@ function strength(notes, length) {
   for (const note of notes) {
     const i = Math.round(note.t / STEP);
     if (i < 0 || i >= n) continue;
+    /** How much this note counts: its loudness, and a little more for low notes (bass notes mark the beat). */
     const w = (note.a ?? 0.7) * (note.p < 55 ? 1.3 : 1);
     for (let k = -2; k <= 2; k++) if (i + k >= 0 && i + k < n) out[i + k] += w * Math.exp(-(k * k) / 2);
   }
@@ -24,6 +25,7 @@ function strength(notes, length) {
 function fit(times, weights, period) {
   let re = 0, im = 0, total = 0;
   for (let i = 0; i < times.length; i++) {
+    /** The note's place in the beat as an angle: notes on the beat all point the same way and add up. */
     const a = (2 * Math.PI * times[i]) / period;
     re += weights[i] * Math.cos(a);
     im += weights[i] * Math.sin(a);
@@ -63,15 +65,18 @@ export function findPeriod(notes) {
   // with this beat; which of the two kinds of beat is the "real" one doesn't matter here, so both ways are compared.
   if (60 / (best * 2) >= 40) {
     const { phase } = fit(times, weights, best);
+    /** The time of a beat on the grid of this tempo, lined up with where the notes start. */
     const zero = (phase / (2 * Math.PI)) * best;
     const filled = new Set();
     for (const t of times) {
+      /** The note's place counted in beats from that time; close to a whole number means it's on a beat. */
       const pos = (t - zero) / best;
       if (Math.abs(pos - Math.round(pos)) <= 0.15) filled.add(Math.round(pos));
     }
     const first = Math.round((times[0] - zero) / best), last = Math.round((times[times.length - 1] - zero) / best);
     const count = [0, 0], all = [0, 0];
     for (let k = first; k <= last; k++) {
+      /** 0 for even beats, 1 for odd ones. */
       const kind = ((k % 2) + 2) % 2;
       all[kind]++;
       if (filled.has(k)) count[kind]++;
@@ -88,6 +93,7 @@ export function evenBeats(notes, period, length) {
   // Lined up on the steadiest of the beat, its half or its quarter (notes on every half beat fit the beat itself in
   // two ways at once), then the one of those places that puts the most notes on the beat.
   const steady = [period, period / 2, period / 4].map(q => ({ q, ...fit(times, weights, q) })).sort((a, b) => b.score - a.score)[0];
+  /** A time that lines up with the steadiest pattern; the beat starts there or a step of that pattern later. */
   const base = (steady.phase / (2 * Math.PI)) * steady.q;
   let bestOffset = base, bestOn = -Infinity;
   for (let k = 0; k < Math.round(period / steady.q); k++) {
@@ -166,6 +172,7 @@ export function findBars(notes, beats) {
       for (let i = 0; i < beats.length; i++) {
         if ((i - first) % meter === 0) { down += near[i]; nd++; } else { other += near[i]; no++; }
       }
+      /** How much stronger the first beats of bars are than the other beats. */
       const ratio = (down / Math.max(1, nd)) / Math.max(1e-6, other / Math.max(1, no));
       // Three must win clearly; and a piece usually starts on a bar's first beat, which decides when nothing else does.
       const firstNoteBeat = nearestBeat(beats, Math.min(...notes.map(n => n.t)));
@@ -177,6 +184,7 @@ export function findBars(notes, beats) {
   return { meter: best.meter, first: best.first };
 }
 
+/** The time from beat i to the next one (to the one before for the last beat). */
 function stepAt(beats, i) {
   return i + 1 < beats.length ? beats[i + 1] - beats[i] : beats[i] - beats[i - 1];
 }
@@ -186,6 +194,7 @@ export function nearestBeat(beats, t) {
   let lo = 0, hi = beats.length - 1;
   if (hi < 0) return -1;
   while (lo < hi) {
+    /** Half way between the two ends of the search. */
     const mid = (lo + hi) >> 1;
     if (beats[mid] < t) lo = mid + 1; else hi = mid;
   }
@@ -200,6 +209,7 @@ export function beatPosition(beats, t) {
   if (t >= beats[last]) return last + (t - beats[last]) / (beats[last] - beats[last - 1]);
   let lo = 0, hi = last;
   while (hi - lo > 1) {
+    /** Half way between the two ends of the search. */
     const mid = (lo + hi) >> 1;
     if (beats[mid] <= t) lo = mid; else hi = mid;
   }
@@ -244,6 +254,7 @@ export function findKey(notes) {
   return { fifths: FIFTHS_OF_MAJOR[relativeMajor], name: keyName(best.tonic, best.minor, FIFTHS_OF_MAJOR[relativeMajor]) };
 }
 
+/** A key's name, such as "E♭ major", spelled with flats in flat keys and sharps otherwise. */
 export function keyName(tonic, minor, fifths) {
   const names = fifths < 0 ? ['C', 'D♭', 'D', 'E♭', 'E', 'F', 'G♭', 'G', 'A♭', 'A', 'B♭', 'B'] : ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
   return `${names[tonic]} ${minor ? 'minor' : 'major'}`;
@@ -258,6 +269,7 @@ export const KEYS = [-7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7].map(fif
   return { fifths, name: `${name} major` };
 });
 
+/** How alike two lists of numbers rise and fall: 1 for exactly alike, 0 for not at all, -1 for opposite. */
 function correlation(a, b) {
   const ma = a.reduce((s, v) => s + v, 0) / a.length, mb = b.reduce((s, v) => s + v, 0) / b.length;
   let num = 0, da = 0, db = 0;

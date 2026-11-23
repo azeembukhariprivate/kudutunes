@@ -4,6 +4,7 @@ import { Synth } from './synth.js';
 
 const AHEAD = 0.12; // notes are handed to the sound system this many seconds before they sound
 
+/** Plays a piece: the app's own sound for the notes, the recording, or both, in step. */
 export class Player {
   /** `notes` is a function returning the notes to play now (those shown), in order of start. */
   constructor(notes) {
@@ -71,9 +72,12 @@ export class Player {
     this.applySpeed();
   }
 
+  /** True when a recording is there to play along. */
   get hasSound() { return !!this.sound; }
 
+  /** Sets how much of the recording and how much of the notes are heard (0: recording only, 1: notes only). */
   setMix(v) { this.mix = v; this.applyMix(); }
+  /** Applies the mix to the two volume controls. */
   applyMix() {
     const rec = Math.min(1, 2 * (1 - this.mix)), notes = Math.min(1, 2 * this.mix);
     if (this.sound && this.sound.routed) this.soundOut.gain.value = rec;
@@ -81,11 +85,15 @@ export class Player {
     if (this.notesOut) this.notesOut.gain.value = (this.sound ? notes : 1) * 0.8;
   }
 
+  /** Plays slower or faster (the pitch stays the same). */
   setSpeed(v) { this.speed = v; this.applySpeed(); this.requeue(); }
+  /** Tells the recording its speed. */
   applySpeed() { if (this.sound) this.sound.playbackRate = this.speed; }
 
+  /** Repeats a part from `from` to `to` (a part shorter than 50 ms counts as none). */
   setLoop(loop) { this.loop = loop && loop.to - loop.from > 0.05 ? loop : null; }
 
+  /** Starts playing from where the music is now. */
   play() {
     if (this.playing) return;
     this.wake();
@@ -97,6 +105,7 @@ export class Player {
       this.sound.currentTime = Math.min(this.time, this.sound.duration || this.time);
       this.sound.play().catch(() => {});
     }
+    /** Runs every frame while playing: moves the clock on and hands upcoming notes to the sound. */
     const step = () => {
       if (!this.playing) return;
       this.tick();
@@ -107,6 +116,7 @@ export class Player {
     this.timer = setInterval(() => this.playing && this.tick(), 50);
   }
 
+  /** Stops playing, keeping the place. */
   pause() {
     if (!this.playing) return;
     this.playing = false;
@@ -117,6 +127,7 @@ export class Player {
     this.onTick(this.time);
   }
 
+  /** Plays when paused, pauses when playing. */
   toggle() { if (this.playing) this.pause(); else this.play(); }
 
   /** Jumps to a time. */
@@ -127,12 +138,14 @@ export class Player {
     this.onTick(this.time);
   }
 
+  /** Forgets the notes already handed to the sound and hands them again from now (after a jump or a change). */
   requeue() {
     if (this.synth) this.synth.hush();
     this.queuedTo = this.time;
     this.last = performance.now();
   }
 
+  /** Moves the clock on, goes round a repeated part, ends at the end, and hands the next notes to the sound. */
   tick() {
     const now = performance.now();
     // The recording is the clock when it's playing; otherwise the app keeps time itself.
@@ -153,6 +166,7 @@ export class Player {
     if (audible) for (const n of this.notes()) {
       if (n.t < this.queuedTo) continue;
       if (n.t >= until) break;
+      /** How long until the note should sound, in real seconds (slowed down or sped up). */
       const wait = (n.t - this.time) / this.speed;
       this.synth.play(this.voice, n.p, this.ctx.currentTime + Math.max(0, wait), Math.min(n.d, stop - n.t) / this.speed, n.a ?? 0.7);
     }

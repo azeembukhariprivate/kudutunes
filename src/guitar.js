@@ -98,12 +98,16 @@ function waysToPlay(group, ids, s) {
   return [];
 }
 
+/** Where a note can go: only the string chosen by hand when there is one, otherwise every place it can be played. */
 function fixed(n, s) {
   const all = places(n.p, s);
   const byHand = n.g == null ? null : all.find(pl => pl.string === n.g);
   return byHand ? [byHand] : all;
 }
 
+/**
+ * Tries every way of putting a chord's notes on different strings (one string each), keeping those the hand can reach.
+ */
 function assign(chord, k, at, strings, ways) {
   if (k === chord.length) {
     const frets = [...at.values()].map(pl => pl.fret).filter(f => f > 0);
@@ -151,7 +155,9 @@ export function tabText(notes, placed, s, title = '') {
   const WIDTH = 72, labels = open.map(p => NAMES[p % 12].padEnd(2, ' '));
   const blocks = [];
   let rows = null, used = 0;
+  /** Starts a new line of tabs: six empty strings. */
   const start = () => { rows = open.map(() => ''); used = 0; };
+  /** Adds the line of tabs written so far to the text (highest string on top). */
   const flush = () => { if (rows && used > 0) blocks.push(rows.map((r, st) => `${labels[st]}|${r}|`).reverse().join('\n')); };
   start();
   moments.forEach((m, i) => {
@@ -168,4 +174,5 @@ export function tabText(notes, placed, s, title = '') {
   return [...head, '', blocks.join('\n\n'), ''].join('\n');
 }
 
+/** A number kept between a lowest and a highest value. */
 function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }

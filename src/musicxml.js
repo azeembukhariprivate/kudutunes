@@ -29,6 +29,7 @@ function noteXml(e, n, chord, staff, voice) {
   return x.join('');
 }
 
+/** The notes and rests of a bar on one staff (a chord's notes after the first are marked as sounding with it). */
 function eventsXml(events, staff, voice) {
   const out = [];
   for (const e of events) {
@@ -38,6 +39,7 @@ function eventsXml(events, staff, voice) {
   return out.join('');
 }
 
+/** What the first bar starts with: the key, the time signature, the clefs and the tempo. */
 function attributes(score, clefs) {
   const staves = clefs.length > 1 ? `<staves>${clefs.length}</staves>` : '';
   const clefXml = clefs.map((c, i) => `<clef${clefs.length > 1 ? ` number="${i + 1}"` : ''}><sign>${c === 'treble' ? 'G' : 'F'}</sign><line>${c === 'treble' ? 2 : 4}</line></clef>`).join('');

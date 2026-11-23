@@ -9,20 +9,26 @@ const BLACK = [1, 3, 6, 8, 10];
 
 /** What both pictures share: which moment is at the left edge, and how wide a second is. */
 export class TimeLine {
+  /** Starts at the beginning, with 110 pixels a second. */
   constructor() { this.t0 = 0; this.pps = 110; }
+  /** Where a time is across the pictures, in pixels. */
   x(t) { return SIDE + (t - this.t0) * this.pps; }
+  /** The time at a place across the pictures. */
   t(x) { return this.t0 + (x - SIDE) / this.pps; }
+  /** Zooms in (by more than 1) or out (less than 1), keeping the time under `aroundX` in place. */
   zoom(by, aroundX) {
     const at = this.t(aroundX);
     this.pps = Math.min(600, Math.max(20, this.pps * by));
     this.t0 = Math.max(0, at - (aroundX - SIDE) / this.pps);
   }
+  /** Moves through time by `seconds`, not past the start or far past the end. */
   scroll(seconds, length, width) {
     const most = Math.max(0, length - (width - SIDE) / this.pps * 0.5);
     this.t0 = Math.min(most, Math.max(0, this.t0 + seconds));
   }
 }
 
+/** The colours of the page's look (light or dark), read from the page's styles. */
 export function colours(el) {
   const c = getComputedStyle(el), v = n => c.getPropertyValue(n).trim();
   return { bg: v('--card'), alt: v('--row'), line: v('--line'), text: v('--text'), subtle: v('--subtle'), accent: v('--accent'), key: v('--key'), dark: v('--key-dark'), head: v('--head') };
@@ -30,6 +36,7 @@ export function colours(el) {
 const hue = p => `hsl(${(((p % 12) + 12) % 12) * 30 + 200}, 68%, 56%)`;
 const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 
+/** Makes a canvas as sharp as the screen allows and the size it's shown at. Returns its drawing tools and size. */
 export function fit(canvas) {
   const r = canvas.getBoundingClientRect(), k = window.devicePixelRatio || 1;
   const w = Math.max(50, Math.round(r.width)), h = Math.max(50, Math.round(r.height));
@@ -39,6 +46,7 @@ export function fit(canvas) {
   return { g, w, h };
 }
 
+/** The piano roll: a bar for each note beside a keyboard, to choose, drag, stretch, add and delete notes. */
 export class Roll {
   /**
    * `app` gives: piece, player, line (TimeLine), selected (Set of note ids), and is told of what the person does:
@@ -70,11 +78,13 @@ export class Roll {
     this.high = Math.min(108, high);
   }
 
+  /** How far down the roll a pitch's row starts. */
   y(p) { return RULER + (this.high - p) * this.row; }
   /** Where the dividing line is drawn: under the row of `split` (that pitch and those above are the upper part). */
   splitY(split) { return this.y(split) + this.row; }
   /** The dividing line's pitch for a place on the screen. */
   splitAt(y) { return Math.min(109, Math.max(21, Math.round(this.high + 1 - (y - RULER) / this.row))); }
+  /** The pitch of the row at a height on the roll. */
   pitchAt(y) { return Math.round(this.high - (y - RULER) / this.row + 0.5); }
 
   /** A note as it's drawn now, with any drag in progress applied. */
@@ -86,6 +96,10 @@ export class Roll {
     return n;
   }
 
+  /**
+   * Draws the roll: rows and the time ruler, the repeated part, the notes, the dividing line, the keyboard and where
+   * the music is.
+   */
   draw() {
     const { g, w, h } = fit(this.canvas), c = colours(this.canvas), { piece, player, line, selected } = this.app;
     this.w = w; this.h = h;
@@ -194,11 +208,13 @@ export class Roll {
     if (px >= SIDE && px <= w) { g.fillStyle = c.accent; g.fillRect(Math.round(px) - 1, 0, 2, h); }
   }
 
+  /** Where the pointer is on the canvas. */
   at(e) {
     const r = this.canvas.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   }
 
+  /** The note under a place on the roll (the one drawn last when they overlap), or null. */
   noteAt(x, y) {
     for (let i = this.boxes.length - 1; i >= 0; i--) {
       const b = this.boxes[i];
@@ -207,6 +223,10 @@ export class Roll {
     return null;
   }
 
+  /**
+   * A press on the roll: plays a key, starts a drag (a note, its end, the dividing line, the ruler or a box) or
+   * chooses.
+   */
   down(e) {
     if (e.button !== 0) return;
     const { x, y } = this.at(e), { line, selected, player, piece } = this.app;
@@ -234,6 +254,7 @@ export class Roll {
     this.app.redraw();
   }
 
+  /** The pointer moving: shows what a press would do, or carries on a drag. */
   move(e) {
     const { x, y } = this.at(e), d = this.drag, { line } = this.app;
     if (!d) {
@@ -255,6 +276,7 @@ export class Roll {
     this.app.redraw();
   }
 
+  /** The press let go: finishes the drag (a move, a stretch, a new dividing line, a repeated part, a box of notes). */
   up(e) {
     const d = this.drag, { piece, selected, line } = this.app;
     this.drag = null;
@@ -288,6 +310,7 @@ export class Roll {
     player.sample(p);
   }
 
+  /** The mouse wheel moves through time; with Ctrl it zooms. */
   wheel(e) {
     e.preventDefault();
     const { line, piece } = this.app, { x } = this.at(e);
@@ -297,7 +320,11 @@ export class Roll {
   }
 }
 
+/** The guitar tabs: six strings with a fret number for each note. */
 export class Tabs {
+  /**
+   * Clicking a fret number chooses its note; clicking elsewhere jumps there. The wheel moves and zooms as in the roll.
+   */
   constructor(canvas, app) {
     this.canvas = canvas;
     this.app = app;
@@ -358,6 +385,7 @@ export class Tabs {
   }
 }
 
+/** Draws a rectangle with rounded corners (the outline only; it's filled or stroked after). */
 function round(g, x, y, w, h, r) {
   g.beginPath();
   g.moveTo(x + r, y);

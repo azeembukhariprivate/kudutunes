@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const walk = dir => readdirSync(dir).flatMap(f => { const p = join(dir, f); return statSync(p).isDirectory() ? walk(p) : [p]; });
+/** Every file the app needs to work offline, as the service worker lists them. */
 export const appFiles = () => ['./', 'index.html', 'manifest.webmanifest', 'THIRD-PARTY-NOTICES.txt',
   ...['src', 'vendor', 'assets'].flatMap(d => walk(join(root, d)).map(p => relative(root, p).split('\\').join('/')))
 ].filter(f => !/LICENSE/.test(f)).sort();

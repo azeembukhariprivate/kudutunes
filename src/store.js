@@ -6,6 +6,7 @@ const NAME = 'kudunotes', VERSION = 1;
 export const BIGGEST_SOUND = 80 * 1024 * 1024; // recordings larger than this aren't kept (the notes still are)
 
 let opening = null;
+/** Opens the browser's store of pieces (once), making its two tables the first time. */
 function open() {
   opening = opening || new Promise((resolve, reject) => {
     const req = indexedDB.open(NAME, VERSION);
@@ -20,6 +21,7 @@ function open() {
   return opening;
 }
 
+/** Does some work in the store, as one step that either all happens or none of it. */
 function run(stores, mode, work) {
   return open().then(db => new Promise((resolve, reject) => {
     const tx = db.transaction(stores, mode);
@@ -37,6 +39,7 @@ export async function list() {
   return all.sort((a, b) => (b.changed || 0) - (a.changed || 0));
 }
 
+/** One piece by its id. */
 export function get(id) {
   return run(['pieces'], 'readonly', tx => asked(tx.objectStore('pieces').get(id)));
 }
@@ -59,11 +62,13 @@ export async function putSound(id, blob, name = '') {
   }
 }
 
+/** The recording kept with a piece, or null. */
 export async function getSound(id) {
   try { return (await run(['sounds'], 'readonly', tx => asked(tx.objectStore('sounds').get(id)))) || null; }
   catch { return null; }
 }
 
+/** Deletes a piece and its recording. */
 export async function remove(id) {
   await run(['pieces', 'sounds'], 'readwrite', tx => { tx.objectStore('pieces').delete(id); tx.objectStore('sounds').delete(id); });
 }

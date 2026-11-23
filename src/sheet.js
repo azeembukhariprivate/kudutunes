@@ -10,6 +10,9 @@ const SHARP_LINES = { treble: [38, 35, 39, 36, 33, 37, 34], bass: [24, 21, 25, 2
 const FLAT_LINES = { treble: [34, 37, 33, 36, 32, 35, 31], bass: [20, 23, 19, 22, 18, 21, 17] };    // B E A D G C F
 const TOP_LINE = { treble: 38, bass: 26 }; // the top staff line: F5 and A3
 
+/**
+ * Draws the sheet music and lets a note be chosen by clicking it, or the music moved to a time by clicking elsewhere.
+ */
 export class Sheet {
   /** `app` gives piece, player, line (TimeLine), selected; and `score()`, the score of score.js (or null). */
   constructor(canvas, app) {
@@ -32,6 +35,10 @@ export class Sheet {
     }, { passive: false });
   }
 
+  /**
+   * Draws the whole picture: staff lines, bar lines, the time signature, notes and rests, the clefs and key down the
+   * left, and where the music is.
+   */
   draw(score) {
     const { g, w, h } = fit(this.canvas), c = colours(this.canvas), { player, line, selected } = this.app;
     g.fillStyle = c.bg; g.fillRect(0, 0, w, h);
@@ -40,6 +47,7 @@ export class Sheet {
     // Sizes: `gap` is the space between two staff lines; everything else is measured in it.
     const gap = Math.max(5, Math.min(10, (h - 24) / 21));
     const tops = [12 + gap * 3.5, 12 + gap * 3.5 + gap * 4 + gap * 6.5];
+    /** The height of a place on a staff (`l` counts steps of the scale: 7 an octave). */
     const yOf = (staff, l) => tops[staff] + (TOP_LINE[score.staves[staff].clef] - l) * gap / 2;
 
     // The staff lines, the clefs and the key signature down the left.
@@ -152,6 +160,7 @@ export class Sheet {
       else { g.font = `${gap * 3.6}px ${MUSIC_FONT}`; g.fillText('𝄢', 2, tops[s] + gap * 3.1); }
       const count = Math.min(7, Math.abs(score.fifths)), lines = (score.fifths > 0 ? SHARP_LINES : FLAT_LINES)[st.clef];
       g.font = `${gap * 2}px ${MUSIC_FONT}`; g.textBaseline = 'middle'; g.textAlign = 'center';
+      /** The room each sharp or flat of the key signature gets beside the clef. */
       const room = (SIDE - gap * 3.4) / Math.max(1, count);
       for (let i = 0; i < count; i++) g.fillText(score.fifths > 0 ? '♯' : '♭', gap * 3.3 + Math.min(gap * 0.85, room) * i, yOf(s, lines[i]));
     });
@@ -178,6 +187,7 @@ function head(g, x, y, gap, hollow) {
 function rest(g, c, e, x, top, gap, line) {
   g.fillStyle = c.subtle; g.strokeStyle = c.subtle;
   if (e.whole) {
+    /** A whole bar's rest goes in the middle of the bar. */
     const cx = (line.x(e.time) + line.x(e.end)) / 2;
     g.fillRect(cx - gap * 0.6, top + gap, gap * 1.2, gap * 0.5); // hangs from the second line
     return;

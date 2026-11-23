@@ -13,6 +13,7 @@ export const DEFAULTS = {
   split: 60, parts: false, hear: 'both', tabsFor: 'both', bpm: null, meter: null, key: null, bottom: 'tabs'
 };
 
+/** A piece: its notes, settings, how long its recording is, and the steps that can be undone and redone. */
 export class Piece {
   constructor({ id = null, name = 'Untitled', notes = [], settings = {}, duration = 0, created = Date.now() } = {}) {
     this.id = id;
@@ -50,6 +51,7 @@ export class Piece {
     return true;
   }
 
+  /** Goes back one change. False when there's nothing to undo. */
   undo() {
     if (this.undone.length === 0) return false;
     this.redone.push(this.notes);
@@ -58,6 +60,7 @@ export class Piece {
     return true;
   }
 
+  /** Does again the change just undone. False when there's nothing to redo. */
   redo() {
     if (this.redone.length === 0) return false;
     this.undone.push(this.notes);
@@ -73,6 +76,7 @@ export class Piece {
     return note;
   }
 
+  /** Removes notes by their ids (a change that can be undone). False when none of them were there. */
   remove(ids) {
     const gone = new Set(ids);
     return this.edit(notes => (notes.some(n => gone.has(n.id)) ? notes.filter(n => !gone.has(n.id)) : null));

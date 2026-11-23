@@ -127,11 +127,13 @@ export function buildScore(notes, s, length) {
     }
 
     const events = [];
+    /** Adds a note or rest to the staff at a place in a bar, with the times it starts and ends. */
     const add = (bar, at, len, extra) => {
       const abs = origin + bar * barSteps + at;
       events.push({ bar, at, len, time: stepTime(abs), end: stepTime(abs + len), ...extra });
     };
     let cursor = origin; // where the last chord ended: rests fill the gaps
+    /** Fills the time from `from` to `to` with rests (a whole bar's rest for a bar with nothing in it). */
     const rests = (from, to) => {
       let at = from;
       while (at < to) {

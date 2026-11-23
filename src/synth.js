@@ -11,6 +11,7 @@ function piano(ctx, p) {
   for (let h = 0; h < parts.length; h++) {
     const fh = f * (h + 1) * (1 + 0.0004 * (h + 1) * (h + 1));
     if (fh > rate / 2 - 500) break;
+    /** How quickly this overtone dies away (the higher ones faster), and its step per sample. */
     const decay = (seconds * 0.32) / (1 + h * 0.6), w = (2 * Math.PI * fh) / rate;
     for (let i = 0; i < n; i++) out[i] += parts[h] * Math.sin(w * i) * Math.exp(-i / rate / decay);
   }
@@ -42,6 +43,7 @@ function guitar(ctx, p) {
   return buf;
 }
 
+/** Makes a sound's loudest point the same for every pitch. */
 function level(out) {
   let peak = 0;
   for (const v of out) peak = Math.max(peak, Math.abs(v));
@@ -52,7 +54,9 @@ function level(out) {
 
 const MAKERS = { piano, guitar };
 
+/** The app's own piano and guitar sounds: each pitch made once in code, then played as often as needed. */
 export class Synth {
+  /** `ctx` is the sound system; `out` where the sounds go (the notes' volume control). */
   constructor(ctx, out) {
     this.ctx = ctx;
     this.out = out;

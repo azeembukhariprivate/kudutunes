@@ -27,16 +27,21 @@ const app = {
   score: null,     // the sheet music (score.js), made when it's shown or saved; null when the notes have changed since
   sound: null, // { blob, name }: the recording being played along
   player: null,
+  /** Chooses notes (adding them to those already chosen when `add`), then updates the buttons and the status line. */
   select(ids, add) {
     if (!add) app.selected.clear();
     for (const id of ids) app.selected.add(id);
     showSelection();
   },
+  /** Jumps to a time in the piece. */
   seek(t) { app.player.seek(t); },
+  /** Starts (or, with null, stops) repeating a part, and jumps to its start. */
   loop(l) { app.player.setLoop(l); $('clearLoop').disabled = !app.player.loop; if (app.player.loop) app.player.seek(app.player.loop.from); },
+  /** Draws the pictures again soon. */
   redraw() { wantDraw(); },
   // The dividing line between the two parts: shown with two instruments, and with the sheet music (it splits the staves).
   showSplit() { return !!app.piece.settings.parts || app.piece.settings.bottom === 'sheet'; },
+  /** Moves the dividing line between the two parts to a new pitch. */
   setSplit(p) { changeSetting('split', p); },
   /** The notes played: with two instruments, only the one chosen to hear. */
   heard() { const s = app.piece.settings; return s.parts && s.hear !== 'both' ? app.piece.inPart(s.hear) : app.piece.shown; },
@@ -52,6 +57,7 @@ const roll = new Roll($('roll'), app), tabs = new Tabs($('tabs'), app), sheet = 
 // ------------------------------------------------------------------ drawing
 
 let drawing = false;
+/** Draws the pictures at the next frame, once however often it's asked for in between. */
 function wantDraw() {
   if (drawing) return;
   drawing = true;
@@ -66,6 +72,7 @@ function wantDraw() {
 addEventListener('resize', wantDraw);
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', wantDraw);
 
+/** Shows one of the screens (home, busy, record, editor) and the buttons that go with it. */
 function show(name) {
   for (const s of screens) $(s).hidden = s !== name;
   const editing = name === 'editor';
@@ -74,6 +81,7 @@ function show(name) {
 }
 
 let toastTimer = null;
+/** A short note at the bottom of the window that goes away by itself. */
 function toast(text, seconds = 3.5) {
   $('toast').textContent = text;
   $('toast').classList.add('show');
@@ -81,6 +89,7 @@ function toast(text, seconds = 3.5) {
   toastTimer = setTimeout(() => $('toast').classList.remove('show'), seconds * 1000);
 }
 
+/** Asks a question in the app's own box. Resolves to true for the yes button, false otherwise. */
 function ask(text, yes = 'OK') {
   return new Promise(resolve => {
     $('askText').textContent = text;
@@ -143,6 +152,7 @@ function showParts() {
   }
 }
 
+/** Brings the buttons and the status line up to date with the notes chosen. */
 function showSelection() {
   const ids = [...app.selected], one = ids.length === 1 ? app.piece.notes.find(n => n.id === ids[0]) : null;
   $('delete').disabled = ids.length === 0;
@@ -159,7 +169,9 @@ function showSelection() {
   wantDraw();
 }
 
+/** The line of help or information at the bottom of the window. */
 function status(text) { $('status').textContent = text; }
+/** The clock beside the play button: where the music is, and how long the piece is. */
 function showTime() { $('time').textContent = `${clock(app.player.time)} / ${clock(app.piece.length)}`; }
 
 /** Puts a piece on the working screen. */
@@ -195,10 +207,12 @@ function openPiece(piece, sound) {
 // ------------------------------------------------------------------ keeping pieces
 
 let saveTimer = null;
+/** Saves the piece in a moment (many changes in a row are saved once). */
 function saveSoon() {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveNow, 700);
 }
+/** Saves the piece in the browser now. */
 async function saveNow() {
   clearTimeout(saveTimer);
   if ($('editor').hidden && app.piece.id == null) return;
@@ -209,6 +223,7 @@ async function saveNow() {
   }
 }
 
+/** Goes back to the first screen, with the list of pieces kept in this browser. */
 async function showHome() {
   app.player.pause();
   if (!$('editor').hidden) await saveNow();
@@ -245,6 +260,7 @@ async function showHome() {
 
 // ------------------------------------------------------------------ listening
 
+/** The "working on it" screen, with a title, a hint and a progress bar. */
 function busy(title, hint) {
   $('busyTitle').textContent = title;
   if (hint) $('busyHint').textContent = hint;
@@ -269,6 +285,7 @@ async function listenTo(samples, duration, name, blob) {
   if (piece.notes.length === 0) toast('No notes were found in this recording.', 5);
 }
 
+/** Reads a sound file into sound the browser can work with. */
 async function decode(blob) {
   const AC = window.AudioContext || window.webkitAudioContext;
   const ctx = new AC();
@@ -279,6 +296,7 @@ async function decode(blob) {
   }
 }
 
+/** Opens a sound file: reads it, listens for the notes, and opens the piece found. */
 async function openSound(file) {
   if (!$('editor').hidden) await saveNow();
   app.player.pause();
@@ -301,6 +319,7 @@ async function openSound(file) {
   }
 }
 
+/** Opens a project file (.kudutunes, or .kudunotes from before the rename) as a new piece in this browser. */
 async function openProject(file) {
   let data;
   try { data = unpack(new Uint8Array(await file.arrayBuffer())); }
@@ -315,6 +334,7 @@ async function openProject(file) {
   openPiece(piece, blob ? { blob, name: data.sound.name } : null);
 }
 
+/** Opens any file given: a project file, or else a sound file. */
 function openAny(file) {
   if (!file) return;
   if (/\.kudu(tunes|notes)$/i.test(file.name)) openProject(file); // .kudunotes: saved before the app was renamed
@@ -325,6 +345,7 @@ function openAny(file) {
 
 const rec = { stream: null, recorder: null, parts: [], started: 0, timer: null, ctx: null, keep: false };
 
+/** Starts recording with the microphone (the microphone's speech "improvements" turned off, as they spoil music). */
 async function startRecording() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
     toast(location.protocol === 'https:' || location.hostname === 'localhost' ? "This browser can't record sound." : 'Recording needs a secure address (https). Opening a sound file still works.', 7);
@@ -360,6 +381,7 @@ async function startRecording() {
   show('record');
 }
 
+/** Stops recording: `keep` listens to what was recorded, otherwise it's thrown away. */
 function stopRecording(keep) {
   rec.keep = keep;
   clearInterval(rec.timer);
@@ -368,6 +390,7 @@ function stopRecording(keep) {
   if (rec.ctx) rec.ctx.close().catch(() => {});
 }
 
+/** When recording stops: the sound becomes a file, which is listened to like any other. */
 async function finishRecording() {
   if (!rec.keep) return showHome();
   const blob = new Blob(rec.parts, { type: rec.recorder.mimeType || 'audio/webm' });
@@ -378,6 +401,7 @@ async function finishRecording() {
 
 // ------------------------------------------------------------------ files out
 
+/** Gives the person a file to save (MIDI, tabs, sheet music, a project). */
 function download(bytes, name, type) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(bytes instanceof Blob ? bytes : new Blob([bytes], { type }));
@@ -387,8 +411,10 @@ function download(bytes, name, type) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 30000);
 }
+/** The piece's name made safe to use as a file name. */
 const fileName = () => (app.piece.name || 'Untitled').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 80) || 'Untitled';
 
+/** Saves the project file: the notes, the settings and, when it isn't too big, the recording. */
 async function saveProjectFile() {
   const p = app.piece.plain();
   let sound = null;
@@ -399,12 +425,16 @@ async function saveProjectFile() {
 
 // ------------------------------------------------------------------ buttons and keys
 
+/**
+ * Changes one of the piece's settings and saves it (working out the guitar places again unless `redoPlaces` is false).
+ */
 function changeSetting(key, value, redoPlaces = true) {
   app.piece.settings[key] = value;
   if (redoPlaces) refresh();
   saveSoon();
 }
 
+/** Plays the chosen note on the next higher (1) or lower (-1) string that can play it. */
 function moveString(dir) {
   const id = [...app.selected][0], note = app.piece.notes.find(n => n.id === id), place = app.placed.get(id);
   if (app.selected.size !== 1 || !note || !place) return;
@@ -413,6 +443,7 @@ function moveString(dir) {
   app.piece.onString(id, dir > 0 ? Math.min(...options) : Math.max(...options));
 }
 
+/** Moves the chosen notes a little in time or pitch (the arrow keys). False when no note is chosen. */
 function nudge(dt, dp) {
   if (app.selected.size === 0) return false;
   app.piece.move([...app.selected], { dt, dp });
@@ -420,8 +451,10 @@ function nudge(dt, dp) {
   return true;
 }
 
+/** Zooms the time line in or out around the middle of the piano roll. */
 function zoom(by) { app.line.zoom(by, SIDE + ($('roll').clientWidth - SIDE) / 2); wantDraw(); }
 
+/** Connects every button, slider, menu and key to what it does (once, at the start). */
 function wire() {
   for (const [key, t] of Object.entries(TUNINGS)) $('tuning').add(new Option(t.name, key));
   $('version').textContent = VERSION;

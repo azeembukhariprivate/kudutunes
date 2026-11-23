@@ -12,11 +12,13 @@ import { unpack, pack } from '../src/project.js';
  * sometimes one on the half beat; each note a little early or late, as a person plays. */
 function tune(bpm, meter, bars, { eighths = true, drift = 0, jitter = 0.012, seed = 1 } = {}) {
   let r = seed;
+  /** A repeatable "random" number (the same each run, so the tests always see the same tune). */
   const rnd = () => ((r = (r * 16807) % 2147483647) / 2147483647);
   const notes = [], scale = [60, 62, 64, 65, 67, 69, 71, 72];
   let t = 0.3, beat = 60 / bpm, id = 1;
   for (let b = 0; b < bars; b++) {
     for (let k = 0; k < meter; k++) {
+      /** A little early or late, as a person plays. */
       const j = () => (rnd() - 0.5) * 2 * jitter;
       if (k === 0) notes.push({ id: id++, t: t + j(), d: beat * meter * 0.9, p: 48, a: 0.8 });
       notes.push({ id: id++, t: t + j(), d: beat * 0.45, p: scale[Math.floor(rnd() * 8)], a: k === 0 ? 0.8 : 0.6 });
@@ -60,6 +62,7 @@ test('bars: four and three beats in a bar, and where a bar starts', () => {
 });
 
 test('the key: major and minor, with the right sharps or flats', () => {
+  /** A tune of the scale's notes from a tonic, one a second. */
   const scale = (steps, tonic) => steps.map((x, i) => ({ t: i, d: 1, p: tonic + x, a: 0.7 }));
   const major = [0, 2, 4, 5, 7, 9, 11, 12, 7, 4, 0], minor = [0, 2, 3, 5, 7, 8, 10, 12, 7, 3, 0];
   assert.equal(findKey(scale(major, 60)).fifths, 0);

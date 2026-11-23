@@ -62,9 +62,11 @@ export function readMidi(bytes) {
   const notes = [];
   let i = 14, trackNo = 0;
   while (i + 8 <= bytes.length) {
+    /** The length of this track, from its header. */
     const size = (bytes[i + 4] << 24) | (bytes[i + 5] << 16) | (bytes[i + 6] << 8) | bytes[i + 7];
     let at = i + 8, now = 0, status = 0;
     const end = at + size, sounding = new Map();
+    /** Reads a number the way MIDI files write lengths: 7 bits a byte, the last byte marked by a clear top bit. */
     const num = () => { let v = 0, b; do { b = bytes[at++]; v = (v << 7) | (b & 127); } while (b & 128); return v; };
     while (at < end) {
       now += num();
